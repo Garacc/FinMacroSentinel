@@ -3,7 +3,9 @@
  * Classifies news into three themes: macro finance, industry, geopolitics
  */
 
-import { Scraper, ScraperSource, DEFAULT_SOURCES } from './scraper';
+import { Scraper, ScraperSource, DEFAULT_SOURCES, getApiSources } from './scraper';
+import { DataCleaner, createDataCleaner } from './dataCleaner';
+import { ApiCollector, createApiCollector } from './apiCollector';
 import { logger } from '../utils/logger';
 import { NewsItem, NewsCategory, RawNewsCollection } from '../types';
 
@@ -123,10 +125,16 @@ const CATEGORY_KEYWORDS: Record<NewsCategory, string[]> = {
 export class NewsCollector {
   private scraper: Scraper;
   private sources: ScraperSource[];
+  private dataCleaner: DataCleaner;
+  private apiCollector: ApiCollector;
+  private useApiSources: boolean;
 
-  constructor(sources?: ScraperSource[]) {
+  constructor(sources?: ScraperSource[], useApiSources: boolean = true) {
     this.sources = sources || EXTENDED_SOURCES;
     this.scraper = new Scraper({}, this.sources);
+    this.dataCleaner = createDataCleaner();
+    this.apiCollector = createApiCollector();
+    this.useApiSources = useApiSources;
   }
 
   /**
@@ -200,18 +208,37 @@ export class NewsCollector {
   /**
    * Collect news from all sources
    * @param timeRange Optional time range to filter news (for non-overlapping runs)
+   * @param includeApi Whether to include API data sources (FRED, VIX, etc.)
    */
-  async collect(timeRange?: TimeRange): Promise<RawNewsCollection> {
+  async collect(timeRange?: TimeRange, includeApi: boolean = true): Promise<RawNewsCollection> {
     logger.info('Starting news collection...');
 
-    const rawItems = await this.scraper.scrapeAll();
+    // Collect from web sources (RSS + HTML)
+    const webItems = await this.scraper.scrapeAll();
+
+    // Collect from API sources (FRED, VIX, Finnhub)
+    let apiItems: NewsItem[] = [];
+    if (includeApi && this.useApiSources) {
+      try {
+        apiItems = await this.apiCollector.collectAll();
+        logger.info(`Collected ${apiItems.length} items from API sources`);
+      } catch (error) {
+        logger.warn('Failed to collect from API sources:', error);
+      }
+    }
+
+    // Combine all items
+    const allItems = [...webItems, ...apiItems];
 
     // Filter by time range if provided
-    const filteredItems = this.filterByTimeRange(rawItems, timeRange);
+    const filteredItems = this.filterByTimeRange(allItems, timeRange);
 
-    // Deduplicate by URL
-    const deduplicatedItems = this.deduplicateByUrl(filteredItems);
-    logger.info(`Deduplicated: ${deduplicatedItems.length} / ${filteredItems.length} items`);
+    // Apply data cleaning (deduplication, truncation, merging)
+    const cleanedItems = this.dataCleaner.process(filteredItems);
+
+    // Deduplicate by URL (additional pass)
+    const deduplicatedItems = this.deduplicateByUrl(cleanedItems);
+    logger.info(`Deduplicated: ${deduplicatedItems.length} / ${cleanedItems.length} items`);
 
     // Classify items
     const classifiedItems = deduplicatedItems.map(item => this.classifyNewsItem(item));
@@ -226,7 +253,9 @@ export class NewsCollector {
       logger.info(`Category ${category}: ${items.length} items`);
     }
 
-    logger.info(`Total collected: ${mixedItems.length} items`);
+    // Get statistics
+    const stats = this.dataCleaner.getStatistics(mixedItems);
+    logger.info(`Total collected: ${mixedItems.length} items, avg content length: ${stats.avgContentLength} chars`);
 
     return {
       items: mixedItems,

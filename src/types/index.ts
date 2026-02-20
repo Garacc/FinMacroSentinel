@@ -12,6 +12,16 @@ export enum NewsCategory {
 }
 
 /**
+ * Data source types (mirrors config/dataSources.ts)
+ */
+export enum DataSourceType {
+  RSS = 'rss',           // RSS feed
+  HTML = 'html',         // Web scraping
+  API = 'api',           // REST API
+  JSON = 'json',         // JSON API endpoint
+}
+
+/**
  * News item from a data source
  */
 export interface NewsItem {
@@ -21,6 +31,14 @@ export interface NewsItem {
   source: string;
   category: NewsCategory;
   timestamp: Date;
+  // New optional fields for enhanced data sources
+  sourceId?: string;           // Reference to dataSources.ts ID
+  language?: 'en' | 'zh';      // Language of the content
+  isApiData?: boolean;          // True if from API source (FRED, Finnhub, etc.)
+  apiMetadata?: {               // Metadata for API-sourced data
+    seriesId?: string;          // For FRED data series
+    dataType?: string;          // Type of data (e.g., 'macro', 'sentiment', 'crypto')
+  };
 }
 
 /**

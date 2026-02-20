@@ -7,6 +7,7 @@ import axios, { AxiosInstance } from 'axios';
 import * as cheerio from 'cheerio';
 import { logger } from '../utils/logger';
 import { NewsItem, NewsCategory } from '../types';
+import { DATA_SOURCES, getEnabledSources, DataSource, DataSourceType } from '../config/dataSources';
 
 export interface ScraperConfig {
   timeout?: number;
@@ -17,10 +18,25 @@ export interface ScraperSource {
   name: string;
   url: string;
   category: NewsCategory;
+  sourceId?: string;  // Reference to dataSources.ts ID
+}
+
+/**
+ * Convert DataSource to ScraperSource
+ */
+function dataSourceToScraperSource(ds: DataSource): ScraperSource {
+  return {
+    name: ds.name,
+    url: ds.url,
+    category: ds.category,
+    sourceId: ds.id,
+  };
 }
 
 /**
  * RSS Feed URLs for financial news
+ * NOTE: Now sourced from config/dataSources.ts
+ * Keeping for backward compatibility
  */
 const RSS_FEEDS = [
   {
@@ -46,42 +62,19 @@ const RSS_FEEDS = [
 ];
 
 /**
- * Default financial news sources - using RSS feeds for reliability
+ * Default financial news sources
+ * Now using centralized configuration from dataSources.ts
+ * Also includes HTML sources (excludes API sources)
  */
 export const DEFAULT_SOURCES: ScraperSource[] = [
-  // RSS Feeds (most reliable)
-  ...RSS_FEEDS,
-  // Chinese sources - direct scraping
-  {
-    name: '新浪财经',
-    url: 'https://finance.sina.com.cn/macro/',
-    category: NewsCategory.MACRO_FINANCE,
-  },
-  {
-    name: '网易财经',
-    url: 'https://money.163.com/',
-    category: NewsCategory.MACRO_FINANCE,
-  },
-  {
-    name: '华尔街见闻',
-    url: 'https://wallstreetcn.com/news/global',
-    category: NewsCategory.MACRO_FINANCE,
-  },
-  {
-    name: '金十数据',
-    url: 'https://www.jin10.com/',
-    category: NewsCategory.MACRO_FINANCE,
-  },
-  {
-    name: '凤凰网财经',
-    url: 'https://finance.ifeng.com/c/80',
-    category: NewsCategory.MACRO_FINANCE,
-  },
-  {
-    name: '同花顺',
-    url: 'https://www.10jqka.com.cn/',
-    category: NewsCategory.MACRO_FINANCE,
-  },
+  // RSS Feeds (most reliable) - from config
+  ...getEnabledSources()
+    .filter(s => s.type === DataSourceType.RSS)
+    .map(dataSourceToScraperSource),
+  // HTML scraping sources - from config
+  ...getEnabledSources()
+    .filter(s => s.type === DataSourceType.HTML)
+    .map(dataSourceToScraperSource),
 ];
 
 /**
@@ -293,4 +286,54 @@ export class Scraper {
  */
 export function createScraper(): Scraper {
   return new Scraper();
+}
+
+/**
+ * Get all API data sources (FRED, Finnhub, etc.)
+ */
+export function getApiSources(): ScraperSource[] {
+  return getEnabledSources()
+    .filter(s => s.type === DataSourceType.API)
+    .map(dataSourceToScraperSource);
+}
+
+/**
+ * Get all RSS sources
+ */
+export function getRssSources(): ScraperSource[] {
+  return getEnabledSources()
+    .filter(s => s.type === DataSourceType.RSS)
+    .map(dataSourceToScraperSource);
+}
+
+/**
+ * Get all HTML sources
+ */
+export function getHtmlSources(): ScraperSource[] {
+  return getEnabledSources()
+    .filter(s => s.type === DataSourceType.HTML)
+    .map(dataSourceToScraperSource);
+}
+
+/**
+ * Log current data source configuration
+ */
+export function logDataSourceConfig(): void {
+  const sources = getEnabledSources();
+  const byType: Record<string, number> = {};
+  const byCategory: Record<NewsCategory, number> = {
+    [NewsCategory.MACRO_FINANCE]: 0,
+    [NewsCategory.INDUSTRY]: 0,
+    [NewsCategory.GEOPOLITICS]: 0,
+  };
+
+  for (const source of sources) {
+    byType[source.type] = (byType[source.type] || 0) + 1;
+    byCategory[source.category]++;
+  }
+
+  logger.info('=== Data Source Configuration ===');
+  logger.info(`Total enabled sources: ${sources.length}`);
+  logger.info(`By type: ${JSON.stringify(byType)}`);
+  logger.info(`By category: ${JSON.stringify(byCategory)}`);
 }

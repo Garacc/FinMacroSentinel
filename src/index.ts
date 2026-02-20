@@ -6,6 +6,8 @@
 import { config } from './config';
 import { logger } from './utils/logger';
 import { NewsCollector } from './collectors/newsCollector';
+import { DataCleaner } from './collectors/dataCleaner';
+import { ApiCollector } from './collectors/apiCollector';
 import { LLMClient } from './analyzer/llmClient';
 import { MacroAnalyzer } from './analyzer/macroAnalyzer';
 import { MarkdownStorage } from './storage/markdownStorage';
@@ -13,16 +15,20 @@ import { FeishuClient } from './delivery/feishuClient';
 import { CardBuilder } from './delivery/cardBuilder';
 import { Scheduler, DEFAULT_SCHEDULE } from './scheduler';
 import { isValidCronExpression } from './scheduler';
+import { DATA_SOURCES, getEnabledSources, FRED_SERIES } from './config/dataSources';
 
 export { config } from './config';
 export { logger } from './utils/logger';
 export { NewsCollector } from './collectors/newsCollector';
+export { DataCleaner } from './collectors/dataCleaner';
+export { ApiCollector } from './collectors/apiCollector';
 export { LLMClient } from './analyzer/llmClient';
 export { MacroAnalyzer } from './analyzer/macroAnalyzer';
 export { MarkdownStorage } from './storage/markdownStorage';
 export { FeishuClient } from './delivery/feishuClient';
 export { CardBuilder } from './delivery/cardBuilder';
 export { Scheduler } from './scheduler';
+export { DATA_SOURCES, getEnabledSources, FRED_SERIES };
 
 /**
  * Run the complete pipeline
