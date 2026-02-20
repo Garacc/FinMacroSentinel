@@ -10,7 +10,13 @@
       "Bash(git init:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \":*)",
+      "Bash(node -e:*)",
+      "Bash(node:*)",
+      "Bash(npx skills find:*)",
+      "Bash(npx skills add:*)"
     ]
   }
 }
