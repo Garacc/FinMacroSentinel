@@ -26,9 +26,15 @@ export { Scheduler } from './scheduler';
 
 /**
  * Run the complete pipeline
+ * @param options.dryRun - If true, skip Feishu delivery
  */
-async function runPipeline(): Promise<void> {
+async function runPipeline(options: { dryRun?: boolean } = {}): Promise<void> {
+  const { dryRun = false } = options;
+
   logger.info('=== FinMacroSentinel Pipeline Starting ===');
+  if (dryRun) {
+    logger.info('[DRY RUN MODE] - Feishu delivery will be skipped');
+  }
 
   try {
     // Initialize components
@@ -58,15 +64,19 @@ async function runPipeline(): Promise<void> {
     const metadata = await storage.save(report);
     logger.info(`Report saved: ${metadata.path}`);
 
-    // Step 3: Send to Feishu (if configured)
-    logger.info('Step 3: Sending to Feishu...');
-    try {
-      const card = cardBuilder.buildCard(report);
-      await feishuClient.sendMessage(card);
-      logger.info('Message sent to Feishu successfully');
-    } catch (error) {
-      logger.error('Failed to send to Feishu:', error);
-      // Continue even if Feishu fails - we still have local storage
+    // Step 3: Send to Feishu (if configured and not dry run)
+    if (dryRun) {
+      logger.info('Step 3: Skipped (dry run mode)');
+    } else {
+      logger.info('Step 3: Sending to Feishu...');
+      try {
+        const card = cardBuilder.buildCard(report);
+        await feishuClient.sendMessage(card);
+        logger.info('Message sent to Feishu successfully');
+      } catch (error) {
+        logger.error('Failed to send to Feishu:', error);
+        // Continue even if Feishu fails - we still have local storage
+      }
     }
 
     logger.info('=== Pipeline Completed ===');
@@ -105,9 +115,9 @@ async function runScheduled(): Promise<void> {
 /**
  * Initialize and run once (non-scheduled)
  */
-async function runOnce(): Promise<void> {
+async function runOnce(options: { dryRun?: boolean } = {}): Promise<void> {
   logger.info('Starting FinMacroSentinel in one-time mode...');
-  await runPipeline();
+  await runPipeline(options);
 }
 
 /**
@@ -117,6 +127,7 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const isScheduled = args.includes('--schedule') || args.includes('-s');
   const isTest = args.includes('--test') || args.includes('-t');
+  const isDryRun = args.includes('--dry-run') || args.includes('-d');
 
   // Validate configuration
   try {
@@ -158,7 +169,7 @@ async function main(): Promise<void> {
   if (isScheduled) {
     await runScheduled();
   } else {
-    await runOnce();
+    await runOnce({ dryRun: isDryRun });
   }
 }
 

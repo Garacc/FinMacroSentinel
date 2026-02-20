@@ -4,6 +4,7 @@
  */
 
 import { LLMClient } from './llmClient';
+import { KeywordAnalyzer } from './keywordAnalyzer';
 import { NewsCollector, calculateTimeRange } from '../collectors/newsCollector';
 import { SYSTEM_PROMPT, generateUserPrompt } from '../prompts/systemPrompt';
 import { logger } from '../utils/logger';
@@ -16,6 +17,7 @@ export interface MacroAnalyzerConfig {
   enableRetry?: boolean;
   maxRetries?: number;
   silenceThreshold?: number;
+  useFallback?: boolean; // Whether to use KeywordAnalyzer when LLM fails
 }
 
 /**
@@ -25,6 +27,7 @@ export interface MacroAnalyzerConfig {
 export class MacroAnalyzer {
   private newsCollector: NewsCollector;
   private llmClient: LLMClient;
+  private keywordAnalyzer: KeywordAnalyzer;
   private config: Required<MacroAnalyzerConfig>;
 
   constructor(
@@ -34,10 +37,12 @@ export class MacroAnalyzer {
   ) {
     this.newsCollector = newsCollector;
     this.llmClient = llmClient;
+    this.keywordAnalyzer = new KeywordAnalyzer();
     this.config = {
       enableRetry: config.enableRetry ?? true,
       maxRetries: config.maxRetries ?? 3,
       silenceThreshold: config.silenceThreshold ?? 3,
+      useFallback: config.useFallback ?? true,
     };
   }
 
@@ -93,23 +98,51 @@ export class MacroAnalyzer {
     }
 
     // Step 5: Build the report
-    const report: MacroReport = {
-      title: `📈 FinMacroSentinel 财经时报 - ${dateStr} ${timeStr}`,
-      date: dateStr,
-      time: timeStr,
-      analyses: [],
-      isSilent: result.isSilent,
-      generatedAt: now,
-    };
+    let report: MacroReport;
 
-    // If analysis succeeded, add content to report
+    // If analysis succeeded, build report from LLM result
     if (result.content && !result.isSilent) {
-      logger.info('Analysis completed successfully');
+      logger.info('Analysis completed successfully via LLM');
+      report = {
+        title: `📈 FinMacroSentinel 财经时报 - ${dateStr} ${timeStr}`,
+        date: dateStr,
+        time: timeStr,
+        analyses: [],
+        isSilent: false,
+        generatedAt: now,
+      };
       // Store raw content for card builder to format
       (report as unknown as Record<string, unknown>).rawContent = result.content;
     } else if (result.error) {
-      logger.error('Analysis failed:', result.error);
-      (report as unknown as Record<string, unknown>).error = result.error;
+      // LLM failed - try keyword analyzer as fallback
+      logger.warn(`LLM analysis failed: ${result.error}`);
+
+      if (this.config.useFallback) {
+        logger.info('Using KeywordAnalyzer as fallback...');
+        report = this.keywordAnalyzer.analyze(collection);
+      } else {
+        logger.error('Fallback disabled, returning error report');
+        report = {
+          title: `📈 FinMacroSentinel 财经时报 - ${dateStr} ${timeStr}`,
+          date: dateStr,
+          time: timeStr,
+          analyses: [],
+          isSilent: false,
+          generatedAt: now,
+        };
+        (report as unknown as Record<string, unknown>).error = result.error;
+      }
+    } else {
+      // No content but no error - treat as silent
+      logger.info('No significant news content, generating silence report');
+      report = {
+        title: `📈 FinMacroSentinel 财经时报 - ${dateStr} ${timeStr}`,
+        date: dateStr,
+        time: timeStr,
+        analyses: [],
+        isSilent: true,
+        generatedAt: now,
+      };
     }
 
     return report;

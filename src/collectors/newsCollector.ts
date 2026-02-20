@@ -208,22 +208,85 @@ export class NewsCollector {
 
     // Filter by time range if provided
     const filteredItems = this.filterByTimeRange(rawItems, timeRange);
-    const classifiedItems = filteredItems.map(item => this.classifyNewsItem(item));
+
+    // Deduplicate by URL
+    const deduplicatedItems = this.deduplicateByUrl(filteredItems);
+    logger.info(`Deduplicated: ${deduplicatedItems.length} / ${filteredItems.length} items`);
+
+    // Classify items
+    const classifiedItems = deduplicatedItems.map(item => this.classifyNewsItem(item));
+
+    // Mix English and Chinese sources (10 each)
+    const mixedItems = this.mixEnglishChinese(classifiedItems);
 
     // Group by category for analysis
-    const groupedByCategory = this.groupByCategory(classifiedItems);
+    const groupedByCategory = this.groupByCategory(mixedItems);
 
     for (const [category, items] of Object.entries(groupedByCategory)) {
       logger.info(`Category ${category}: ${items.length} items`);
     }
 
-    logger.info(`Total collected: ${classifiedItems.length} items`);
+    logger.info(`Total collected: ${mixedItems.length} items`);
 
     return {
-      items: classifiedItems,
+      items: mixedItems,
       collectedAt: new Date(),
-      sourceCount: new Set(filteredItems.map(i => i.source)).size,
+      sourceCount: new Set(deduplicatedItems.map(i => i.source)).size,
     };
+  }
+
+  /**
+   * Deduplicate news items by URL
+   */
+  private deduplicateByUrl(items: NewsItem[]): NewsItem[] {
+    const seenUrls = new Set<string>();
+    const uniqueItems: NewsItem[] = [];
+
+    for (const item of items) {
+      if (!seenUrls.has(item.url)) {
+        seenUrls.add(item.url);
+        uniqueItems.push(item);
+      }
+    }
+
+    return uniqueItems;
+  }
+
+  /**
+   * Mix English and Chinese sources for diversity
+   * Priority: 10 English + 10 Chinese
+   */
+  private mixEnglishChinese(items: NewsItem[]): NewsItem[] {
+    // Define English and Chinese sources
+    const englishKeywords = ['bloomberg', 'reuters', 'cnbc', 'wsj', 'marketwatch', 'bbc', 'cnn', 'ft', 'investing'];
+    const chineseKeywords = ['新浪', '网易', '华尔街见闻', '凤凰网', '东方财富', '金十', '同花顺', '腾讯', '阿里'];
+
+    const englishItems: NewsItem[] = [];
+    const chineseItems: NewsItem[] = [];
+    const otherItems: NewsItem[] = [];
+
+    for (const item of items) {
+      const sourceLower = item.source.toLowerCase();
+      const isEnglish = englishKeywords.some(k => sourceLower.includes(k));
+      const isChinese = chineseKeywords.some(k => item.source.includes(k) || sourceLower.includes(k));
+
+      if (isEnglish) {
+        englishItems.push(item);
+      } else if (isChinese) {
+        chineseItems.push(item);
+      } else {
+        otherItems.push(item);
+      }
+    }
+
+    // Mix: 10 English + 10 Chinese + others
+    const result = [
+      ...englishItems.slice(0, 10),
+      ...chineseItems.slice(0, 10),
+      ...otherItems,
+    ];
+
+    return result.slice(0, 20);
   }
 
   /**
