@@ -27,13 +27,18 @@ export { Scheduler } from './scheduler';
 /**
  * Run the complete pipeline
  * @param options.dryRun - If true, skip Feishu delivery
+ * @param options.timePeriod - Time period (morning/noon/night)
+ * @param options.periodLabel - Display label for time period
  */
-async function runPipeline(options: { dryRun?: boolean } = {}): Promise<void> {
-  const { dryRun = false } = options;
+async function runPipeline(options: { dryRun?: boolean; timePeriod?: TimePeriod; periodLabel?: string } = {}): Promise<void> {
+  const { dryRun = false, timePeriod, periodLabel } = options;
 
   logger.info('=== FinMacroSentinel Pipeline Starting ===');
   if (dryRun) {
     logger.info('[DRY RUN MODE] - Feishu delivery will be skipped');
+  }
+  if (timePeriod) {
+    logger.info(`[TIME PERIOD] - ${periodLabel}`);
   }
 
   try {
@@ -57,7 +62,7 @@ async function runPipeline(options: { dryRun?: boolean } = {}): Promise<void> {
 
     // Step 1: Analyze news
     logger.info('Step 1: Analyzing financial news...');
-    const report = await analyzer.analyze();
+    const report = await analyzer.analyze(timePeriod);
 
     // Step 2: Save to local storage
     logger.info('Step 2: Saving report to local storage...');
@@ -115,9 +120,41 @@ async function runScheduled(): Promise<void> {
 /**
  * Initialize and run once (non-scheduled)
  */
-async function runOnce(options: { dryRun?: boolean } = {}): Promise<void> {
+async function runOnce(options: { dryRun?: boolean; timePeriod?: TimePeriod } = {}): Promise<void> {
+  const { dryRun = false, timePeriod } = options;
+
+  let periodLabel = '';
+  if (timePeriod) {
+    const labels: Record<TimePeriod, string> = {
+      morning: '早盘预演',
+      noon: '午间复盘',
+      night: '夜盘前瞻',
+    };
+    periodLabel = labels[timePeriod];
+    logger.info(`Running for time period: ${timePeriod} (${periodLabel})`);
+  }
+
   logger.info('Starting FinMacroSentinel in one-time mode...');
-  await runPipeline(options);
+  await runPipeline({ dryRun, timePeriod, periodLabel });
+}
+
+/**
+ * Time period type
+ */
+type TimePeriod = 'morning' | 'noon' | 'night';
+
+/**
+ * Parse time period from args
+ */
+function getTimePeriod(args: string[]): TimePeriod | undefined {
+  const typeIndex = args.findIndex(arg => arg === '--type' || arg === '-T');
+  if (typeIndex !== -1 && args[typeIndex + 1]) {
+    const value = args[typeIndex + 1].toLowerCase();
+    if (['morning', 'noon', 'night'].includes(value)) {
+      return value as TimePeriod;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -128,6 +165,7 @@ async function main(): Promise<void> {
   const isScheduled = args.includes('--schedule') || args.includes('-s');
   const isTest = args.includes('--test') || args.includes('-t');
   const isDryRun = args.includes('--dry-run') || args.includes('-d');
+  const timePeriod = getTimePeriod(args);
 
   // Validate configuration
   try {
@@ -169,7 +207,7 @@ async function main(): Promise<void> {
   if (isScheduled) {
     await runScheduled();
   } else {
-    await runOnce({ dryRun: isDryRun });
+    await runOnce({ dryRun: isDryRun, timePeriod });
   }
 }
 

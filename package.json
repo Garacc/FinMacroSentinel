@@ -25,7 +25,8 @@
     "axios": "^1.6.7",
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.4.1",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "playwright": "^1.58.2"
   },
   "devDependencies": {
     "@types/cheerio": "^0.22.35",

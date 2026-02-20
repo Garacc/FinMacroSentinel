@@ -136,9 +136,18 @@ export const SYSTEM_PROMPT = `# FinMacroSentinel Agent 核心系统指令
 （不要生成任何虚假分析或URL链接）`;
 
 /**
- * Determine the report period based on current hour
+ * Determine the report period based on current hour or explicit parameter
  */
-function getReportPeriod(): string {
+function getReportPeriod(explicitPeriod?: string): string {
+  if (explicitPeriod) {
+    const labels: Record<string, string> = {
+      morning: "早盘预演",
+      noon: "午间复盘",
+      night: "夜盘前瞻",
+    };
+    return labels[explicitPeriod] || "早盘预演";
+  }
+
   const hour = new Date().getHours();
 
   if (hour >= 5 && hour < 12) {
@@ -152,8 +161,10 @@ function getReportPeriod(): string {
 
 /**
  * Generate user prompt with news data
+ * @param collection - Raw news collection
+ * @param explicitPeriod - Explicit time period (morning/noon/night)
  */
-export function generateUserPrompt(collection: RawNewsCollection): string {
+export function generateUserPrompt(collection: RawNewsCollection, explicitPeriod?: string): string {
   const { items, collectedAt } = collection;
 
   // Format timestamp
@@ -166,8 +177,8 @@ export function generateUserPrompt(collection: RawNewsCollection): string {
     minute: '2-digit',
   });
 
-  // Determine report period
-  const period = getReportPeriod();
+  // Determine report period (use explicit if provided)
+  const period = getReportPeriod(explicitPeriod);
 
   // Group items by category
   const macroItems = items.filter(i => i.category === NewsCategory.MACRO_FINANCE);

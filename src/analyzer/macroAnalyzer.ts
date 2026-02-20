@@ -48,8 +48,9 @@ export class MacroAnalyzer {
 
   /**
    * Run the complete analysis pipeline
+   * @param timePeriod - Optional explicit time period (morning/noon/night)
    */
-  async analyze(): Promise<MacroReport> {
+  async analyze(timePeriod?: string): Promise<MacroReport> {
     const now = new Date();
     const dateStr = now.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
     const timeStr = now.toLocaleTimeString('zh-CN', {
@@ -79,7 +80,7 @@ export class MacroAnalyzer {
     }
 
     // Step 3: Generate and send prompt to LLM
-    const userPrompt = generateUserPrompt(collection);
+    const userPrompt = generateUserPrompt(collection, timePeriod);
     let result = await this.llmClient.sendMessage(SYSTEM_PROMPT, userPrompt);
 
     // Step 4: Handle retry if needed
