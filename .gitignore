@@ -7,3 +7,6 @@ dist/
 .claude/
 coverage/
 output/
+
+# Memory MCP
+.memory/
