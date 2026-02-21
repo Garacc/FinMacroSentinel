@@ -7,6 +7,7 @@ import axios, { AxiosInstance } from 'axios';
 import { NewsItem, NewsCategory } from '../types';
 import { logger } from '../utils/logger';
 import { getSourceById, FRED_SERIES } from '../config/dataSources';
+import { TIMEOUTS } from '../constants';
 
 /**
  * API collector configuration
@@ -71,7 +72,7 @@ export class ApiCollector {
 
   constructor(config: ApiCollectorConfig = {}) {
     this.client = axios.create({
-      timeout: config.timeout || 15000,
+      timeout: config.timeout || TIMEOUTS.API,
       headers: {
         'User-Agent': 'FinMacroSentinel/1.0',
       },

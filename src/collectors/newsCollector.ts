@@ -100,24 +100,8 @@ const EXTENDED_SOURCES: ScraperSource[] = [
   },
 ];
 
-/**
- * Keywords for categorizing news
- */
-const CATEGORY_KEYWORDS: Record<NewsCategory, string[]> = {
-  [NewsCategory.MACRO_FINANCE]: [
-    'cpi', 'ppi', 'gdp', 'fed', '美联储', '利率', '债券', '国债',
-    '美元', '人民币', '汇率', '通胀', '非农', '就业', '央行', '货币政策',
-    '量化宽松', 'qt', 'fomc', '议息', '收益率', '降息', '加息',
-  ],
-  [NewsCategory.INDUSTRY]: [
-    '行业', '板块', 'etf', '新能源', '半导体', '芯片', 'ai', '人工智能',
-    '汽车', '地产', '房地产', '银行', '保险', '券商', '医药', '消费',
-  ],
-  [NewsCategory.GEOPOLITICS]: [
-    '战争', '冲突', '制裁', '贸易战', '关税', 'g20', '峰会', '外交',
-    '俄罗斯', '乌克兰', '中东', '朝鲜', '伊朗', '欧盟', '北约',
-  ],
-};
+// Import shared constants
+import { CATEGORY_KEYWORDS, NEWS_LIMITS } from '../constants';
 
 /**
  * News collector class
@@ -344,13 +328,12 @@ export class NewsCollector {
       return false;
     }
 
-    // Lower threshold - if we have any news, analyze it
-    // Filter for potentially significant news (even short content counts)
+    // Filter for significant news items using shared constants
     const significantItems = collection.items.filter(
-      item => item.content.length > 10
+      item => item.content.length > NEWS_LIMITS.MIN_CONTENT_LENGTH
     );
 
-    return significantItems.length >= 1;
+    return significantItems.length >= NEWS_LIMITS.MIN_SIGNIFICANT_ITEMS;
   }
 
   /**

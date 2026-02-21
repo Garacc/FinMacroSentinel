@@ -5,6 +5,7 @@
 
 import { RawNewsCollection, NewsCategory, MacroReport, InvestmentAnalysis } from '../types';
 import { logger } from '../utils/logger';
+import { CATEGORY_KEYWORDS, ASSET_KEYWORDS } from '../constants';
 
 /**
  * Keyword-based news analyzer (fallback when LLM fails)
@@ -14,35 +15,11 @@ export class KeywordAnalyzer {
   private assetKeywords: Record<string, string[]>;
 
   constructor() {
-    // Keywords for categorization
-    this.categoryKeywords = {
-      [NewsCategory.MACRO_FINANCE]: [
-        'cpi', 'ppi', 'gdp', 'fed', '美联储', '利率', '债券', '国债',
-        '美元', '人民币', '汇率', '通胀', '非农', '就业', '央行', '货币政策',
-        '量化宽松', 'qt', 'fomc', '议息', '收益率', '降息', '加息',
-        'inflation', 'interest', 'rate', 'bond', 'treasury', 'dollar', 'yuan',
-      ],
-      [NewsCategory.INDUSTRY]: [
-        '行业', '板块', 'etf', '新能源', '半导体', '芯片', 'ai', '人工智能',
-        '汽车', '地产', '房地产', '银行', '保险', '券商', '医药', '消费',
-        'nvidia', 'openai', 'amazon', 'tesla', 'robot', 'tech', 'semiconductor',
-      ],
-      [NewsCategory.GEOPOLITICS]: [
-        '战争', '冲突', '制裁', '贸易战', '关税', 'g20', '峰会', '外交',
-        '俄罗斯', '乌克兰', '中东', '朝鲜', '伊朗', '欧盟', '北约',
-        'russia', 'ukraine', 'iran', 'china', 'usa', 'war', 'sanction',
-      ],
-    };
+    // Use shared constants for categorization
+    this.categoryKeywords = CATEGORY_KEYWORDS;
 
-    // Keywords for asset mapping
-    this.assetKeywords = {
-      'bond': ['美债', '国债', '债券', 'bond', 'treasury', 'yield'],
-      'stock': ['股票', '股市', '指数', 'stock', 'index', 'nasdaq', 'dow'],
-      'gold': ['黄金', 'gold', '金价'],
-      'oil': ['原油', '石油', '油价', 'oil', 'petroleum'],
-      'currency': ['汇率', '美元', '人民币', '日元', 'currency', 'dollar', 'yen'],
-      'tech': ['科技', 'ai', '芯片', '半导体', 'tech', 'nvidia', '半导体'],
-    };
+    // Use shared constants for asset mapping
+    this.assetKeywords = ASSET_KEYWORDS;
   }
 
   /**

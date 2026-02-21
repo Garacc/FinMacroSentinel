@@ -103,21 +103,42 @@ export class Scheduler {
     const runs: Date[] = [];
 
     // Parse the cron expression to get next run times
-    // This is a basic implementation
     const parts = cronExpr.split(' ');
     if (parts.length >= 5) {
-      const [, hours] = parts;
+      const [, hours, minutes] = parts;
       const hourList = hours.split(',').map(Number);
+      const minuteList = minutes ? minutes.split(',').map(Number) : [0];
 
-      for (let i = 0; i < count; i++) {
-        const nextDate = new Date(now);
-        nextDate.setDate(nextDate.getDate() + i + 1);
-        nextDate.setHours(hourList[0], 0, 0, 0);
-        runs.push(nextDate);
+      // Find the next valid run times
+      let current = new Date(now);
+      current.setSeconds(0, 0);
+
+      while (runs.length < count) {
+        // Move to next hour
+        current = new Date(current.getTime() + 60 * 60 * 1000);
+
+        for (const hour of hourList) {
+          if (runs.length >= count) break;
+
+          current.setHours(hour);
+          for (const minute of minuteList) {
+            current.setMinutes(minute);
+
+            if (current > now) {
+              runs.push(new Date(current));
+            }
+          }
+        }
+
+        // If no more runs today, move to tomorrow
+        if (runs.length === 0 && current.getHours() >= Math.max(...hourList)) {
+          current.setDate(current.getDate() + 1);
+          current.setHours(0, 0, 0, 0);
+        }
       }
     }
 
-    return runs;
+    return runs.slice(0, count);
   }
 }
 

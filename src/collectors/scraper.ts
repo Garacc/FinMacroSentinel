@@ -8,6 +8,7 @@ import * as cheerio from 'cheerio';
 import { logger } from '../utils/logger';
 import { NewsItem, NewsCategory } from '../types';
 import { DATA_SOURCES, getEnabledSources, DataSource, DataSourceType } from '../config/dataSources';
+import { TIMEOUTS } from '../constants';
 
 export interface ScraperConfig {
   timeout?: number;
@@ -86,7 +87,7 @@ export class Scraper {
 
   constructor(config: ScraperConfig = {}, sources: ScraperSource[] = DEFAULT_SOURCES) {
     this.client = axios.create({
-      timeout: config.timeout || 10000,
+      timeout: config.timeout || TIMEOUTS.SCRAPER,
       headers: {
         'User-Agent': config.userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
