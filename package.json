@@ -23,12 +23,14 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
     "axios": "^1.6.7",
+    "better-sqlite3": "^12.6.2",
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.4.1",
     "node-cron": "^3.0.3",
     "playwright": "^1.58.2"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/cheerio": "^0.22.35",
     "@types/node": "^20.11.16",
     "@types/node-cron": "^3.0.11",

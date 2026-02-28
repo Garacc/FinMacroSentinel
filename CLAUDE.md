@@ -135,6 +135,25 @@ Msg Type: `interactive`
 - Run: `npm test`
 - Watch mode: `npm run test:watch`
 
+## Plan Persistence
+
+When implementing multi-step tasks, always:
+
+1. **Write plan to file**: Save to `~/.claude/plans/vectorized-forging-sloth.md`
+2. **Mark progress**: Use checkboxes `[ ]` / `[x]` for incomplete/complete
+3. **Persist immediately**: Save before executing any code
+4. **Update on completion**: Mark items complete in the plan file
+
+## Memory System
+
+This project uses **claude-mem** for conversation memory:
+
+- **Auto-load**: Project memories are automatically loaded on SessionStart
+- **View memories**: Visit http://localhost:37777 to view stored memories
+- **Manual search**: Use MCP tools `memory_search`, `memory_related`, or `memory_ask` to query
+
+Note: This feature is configured globally in `~/.claude/settings.json` and applies to all projects.
+
 <!-- MEMORY:START -->
 # FinMacroSentinel
 

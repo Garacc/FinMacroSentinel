@@ -6,6 +6,7 @@
 import { Scraper, ScraperSource, DEFAULT_SOURCES, getApiSources } from './scraper';
 import { DataCleaner, createDataCleaner } from './dataCleaner';
 import { ApiCollector, createApiCollector } from './apiCollector';
+import { Database } from '../storage/db';
 import { logger } from '../utils/logger';
 import { NewsItem, NewsCategory, RawNewsCollection } from '../types';
 
@@ -112,13 +113,15 @@ export class NewsCollector {
   private dataCleaner: DataCleaner;
   private apiCollector: ApiCollector;
   private useApiSources: boolean;
+  private db: Database | null = null;
 
-  constructor(sources?: ScraperSource[], useApiSources: boolean = true) {
+  constructor(sources?: ScraperSource[], useApiSources: boolean = true, db?: Database) {
     this.sources = sources || EXTENDED_SOURCES;
     this.scraper = new Scraper({}, this.sources);
     this.dataCleaner = createDataCleaner();
     this.apiCollector = createApiCollector();
     this.useApiSources = useApiSources;
+    this.db = db || null;
   }
 
   /**
@@ -228,8 +231,22 @@ export class NewsCollector {
     const deduplicatedItems = this.deduplicateByUrl(cleanedItems);
     logger.info(`Deduplicated: ${deduplicatedItems.length} / ${cleanedItems.length} items`);
 
+    // Filter existing news from database (incremental collection)
+    const newItems = this.filterExistingNews(deduplicatedItems);
+    logger.info(`Incremental filter: ${newItems.length} new items`);
+
+    // If no new items, return empty collection
+    if (newItems.length === 0) {
+      logger.info('No new news to collect');
+      return {
+        items: [],
+        collectedAt: new Date(),
+        sourceCount: 0,
+      };
+    }
+
     // Classify items
-    const classifiedItems = deduplicatedItems.map(item => this.classifyNewsItem(item));
+    const classifiedItems = newItems.map(item => this.classifyNewsItem(item));
 
     // Mix English and Chinese sources (10 each)
     const mixedItems = this.mixEnglishChinese(classifiedItems);
@@ -250,6 +267,28 @@ export class NewsCollector {
       collectedAt: new Date(),
       sourceCount: new Set(deduplicatedItems.map(i => i.source)).size,
     };
+  }
+
+  /**
+   * Filter out news that already exist in database (incremental collection)
+   */
+  private filterExistingNews(items: NewsItem[]): NewsItem[] {
+    if (!this.db) {
+      return items;
+    }
+
+    const newItems: NewsItem[] = [];
+    for (const item of items) {
+      if (!this.db.hasNews(item.url)) {
+        newItems.push(item);
+      }
+    }
+
+    if (newItems.length < items.length) {
+      logger.info(`Filtered ${items.length - newItems.length} existing news from database`);
+    }
+
+    return newItems;
   }
 
   /**

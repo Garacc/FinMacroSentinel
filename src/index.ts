@@ -11,6 +11,7 @@ import { ApiCollector } from './collectors/apiCollector';
 import { LLMClient } from './analyzer/llmClient';
 import { MacroAnalyzer } from './analyzer/macroAnalyzer';
 import { MarkdownStorage } from './storage/markdownStorage';
+import { getDatabase } from './storage/db';
 import { FeishuClient } from './delivery/feishuClient';
 import { CardBuilder } from './delivery/cardBuilder';
 import { Scheduler, DEFAULT_SCHEDULE } from './scheduler';
@@ -48,6 +49,9 @@ async function runPipeline(options: { dryRun?: boolean; timePeriod?: TimePeriod;
   }
 
   try {
+    // Initialize database (for news persistence)
+    const db = getDatabase();
+
     // Initialize components
     const newsCollector = new NewsCollector();
     const llmClient = new LLMClient({
@@ -59,6 +63,19 @@ async function runPipeline(options: { dryRun?: boolean; timePeriod?: TimePeriod;
     const storage = new MarkdownStorage({
       outputDir: config.storage.outputDir,
     });
+
+    // Step 1: Analyze news
+    logger.info('Step 1: Analyzing financial news...');
+    const report = await analyzer.analyze(timePeriod);
+
+    // Step 1.5: Save collected news to database (for persistence)
+    if (report.sourceItems && report.sourceItems.length > 0) {
+      logger.info(`Step 1.5: Persisting ${report.sourceItems.length} news items to database...`);
+      const savedCount = db.saveNewsBatch(report.sourceItems);
+      logger.info(`Saved ${savedCount} news items to database`);
+    }
+
+    // Step 2: Save to local storage
     const feishuClient = new FeishuClient({
       appId: config.feishu.appId,
       appSecret: config.feishu.appSecret,
@@ -66,11 +83,6 @@ async function runPipeline(options: { dryRun?: boolean; timePeriod?: TimePeriod;
     });
     const cardBuilder = new CardBuilder();
 
-    // Step 1: Analyze news
-    logger.info('Step 1: Analyzing financial news...');
-    const report = await analyzer.analyze(timePeriod);
-
-    // Step 2: Save to local storage
     logger.info('Step 2: Saving report to local storage...');
     const metadata = await storage.save(report);
     logger.info(`Report saved: ${metadata.path}`);
