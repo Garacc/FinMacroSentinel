@@ -7,7 +7,8 @@ import fs from 'fs';
 import path from 'path';
 import { config as globalConfig } from '../config';
 import { logger } from '../utils/logger';
-import { MacroReport, StorageMetadata } from '../types';
+import { MacroReport, StorageMetadata, NewsCategory, NewsItem } from '../types';
+import { tagsToString } from '../constants';
 
 export interface MarkdownStorageConfig {
   outputDir?: string;
@@ -80,8 +81,16 @@ export class MarkdownStorage {
 
     // Raw content from LLM
     if ((report as unknown as Record<string, unknown>).rawContent) {
-      lines.push((report as unknown as Record<string, unknown>).rawContent as string);
+      let content = (report as unknown as Record<string, unknown>).rawContent as string;
+
+      // Inject tags into source URLs
+      if (report.sourceItems && report.sourceItems.length > 0) {
+        content = this.injectTagsToSources(content, report.sourceItems);
+      }
+
+      lines.push(content);
       lines.push('');
+
       return lines.join('\n');
     }
 
@@ -115,6 +124,34 @@ export class MarkdownStorage {
     }
 
     return lines.join('\n');
+  }
+
+  /**
+   * Inject tags into source URLs in markdown content
+   * Transforms: [Source Name](URL) -> [Source Name][tag1][tag2](URL)
+   */
+  private injectTagsToSources(content: string, sourceItems: NewsItem[]): string {
+    // Build URL -> tags mapping
+    const urlTagMap = new Map<string, string>();
+    for (const item of sourceItems) {
+      if (item.tags) {
+        const tagStr = tagsToString(item.tags);
+        if (tagStr) {
+          urlTagMap.set(item.url, tagStr);
+        }
+      }
+    }
+
+    // Replace pattern: [Source Name](URL) -> [Source Name][TAG](URL)
+    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    return content.replace(regex, (match, sourceName, url) => {
+      const tagStr = urlTagMap.get(url);
+      if (tagStr) {
+        // Insert tags after source name, keep the original link
+        return `[${sourceName}]${tagStr}(${url})`;
+      }
+      return match;
+    });
   }
 
   /**

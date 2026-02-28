@@ -76,6 +76,7 @@ export class MacroAnalyzer {
         analyses: [],
         isSilent: true,
         generatedAt: now,
+        sourceItems: collection.items,
       };
     }
 
@@ -111,6 +112,7 @@ export class MacroAnalyzer {
         analyses: [],
         isSilent: false,
         generatedAt: now,
+        sourceItems: collection.items,
       };
       // Store raw content for card builder to format
       (report as unknown as Record<string, unknown>).rawContent = result.content;
@@ -143,6 +145,7 @@ export class MacroAnalyzer {
         analyses: [],
         isSilent: true,
         generatedAt: now,
+        sourceItems: collection.items,
       };
     }
 

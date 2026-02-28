@@ -101,7 +101,7 @@ const EXTENDED_SOURCES: ScraperSource[] = [
 ];
 
 // Import shared constants
-import { CATEGORY_KEYWORDS, NEWS_LIMITS } from '../constants';
+import { CATEGORY_KEYWORDS, NEWS_LIMITS, classifyTags } from '../constants';
 
 /**
  * News collector class
@@ -157,17 +157,21 @@ export class NewsCollector {
   }
 
   /**
-   * Classify a news item into appropriate category
+   * Classify a news item into appropriate category and tags
    */
   private classifyNewsItem(item: NewsItem): NewsItem {
     // If source already has a category, use it as a hint
     // But also check content for better classification
     const contentCategory = this.categorizeByKeywords(item.title, item.content);
 
+    // Classify multi-dimensional tags
+    const tags = classifyTags(item.title, item.content);
+
     // Prefer content-based classification over source-based
     return {
       ...item,
       category: contentCategory,
+      tags,
     };
   }
 

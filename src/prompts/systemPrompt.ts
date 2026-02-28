@@ -4,6 +4,7 @@
  */
 
 import { RawNewsCollection, NewsCategory } from '../types';
+import { tagsToString } from '../constants';
 
 /**
  * The comprehensive system prompt that defines the AI's role and rules
@@ -198,7 +199,8 @@ export function generateUserPrompt(collection: RawNewsCollection, explicitPeriod
     prompt += `## 🌍 模块一：宏观金融与大类资产\n\n`;
     prompt += `### 原始新闻素材\n`;
     for (const item of macroItems.slice(0, 15)) {  // Limit to top 15 items
-      prompt += `【${item.source}】${item.title}\n`;
+      const tagStr = item.tags ? tagsToString(item.tags) : '';
+      prompt += `【${item.source}】${tagStr}${item.title}\n`;
       prompt += `> ${item.content}\n`;
       prompt += `来源: ${item.url}\n\n`;
     }
@@ -208,7 +210,8 @@ export function generateUserPrompt(collection: RawNewsCollection, explicitPeriod
     prompt += `## 🏭 模块二：中观行业与资金博弈\n\n`;
     prompt += `### 原始新闻素材\n`;
     for (const item of industryItems.slice(0, 15)) {
-      prompt += `【${item.source}】${item.title}\n`;
+      const tagStr = item.tags ? tagsToString(item.tags) : '';
+      prompt += `【${item.source}】${tagStr}${item.title}\n`;
       prompt += `> ${item.content}\n`;
       prompt += `来源: ${item.url}\n\n`;
     }
@@ -218,7 +221,8 @@ export function generateUserPrompt(collection: RawNewsCollection, explicitPeriod
     prompt += `## ⚔️ 模块三：地缘政治与宏观尾部风险\n\n`;
     prompt += `### 原始新闻素材\n`;
     for (const item of geoItems.slice(0, 10)) {
-      prompt += `【${item.source}】${item.title}\n`;
+      const tagStr = item.tags ? tagsToString(item.tags) : '';
+      prompt += `【${item.source}】${tagStr}${item.title}\n`;
       prompt += `> ${item.content}\n`;
       prompt += `来源: ${item.url}\n\n`;
     }
