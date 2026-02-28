@@ -12,6 +12,7 @@ import { LLMClient } from './analyzer/llmClient';
 import { MacroAnalyzer } from './analyzer/macroAnalyzer';
 import { MarkdownStorage } from './storage/markdownStorage';
 import { getDatabase } from './storage/db';
+import { generateDailyReport } from './analyzer/dailyReport';
 import { FeishuClient } from './delivery/feishuClient';
 import { CardBuilder } from './delivery/cardBuilder';
 import { Scheduler, DEFAULT_SCHEDULE } from './scheduler';
@@ -117,18 +118,39 @@ async function runScheduled(): Promise<void> {
 
   const scheduler = new Scheduler();
 
-  // Add the main pipeline as a scheduled task
-  scheduler.addTask({
-    name: 'main-pipeline',
-    cronExpression: config.scheduler.cronExpression,
-    timezone: 'Asia/Shanghai',
-    handler: runPipeline,
-  });
+  // Parse cron expression to extract hours
+  const cronParts = config.scheduler.cronExpression.split(' ');
+  const hours = cronParts[1].split(',');
+
+  for (const hour of hours) {
+    const hourNum = parseInt(hour, 10);
+
+    if (hourNum === 6) {
+      // Daily deep report at 6:00
+      scheduler.addTask({
+        name: 'daily-report',
+        cronExpression: `0 ${hour} * * 1-5`,
+        timezone: 'Asia/Shanghai',
+        handler: async () => {
+          logger.info('Running daily deep report...');
+          await generateDailyReport({ hours: 24 });
+        },
+      });
+    } else {
+      // Regular pipeline for other times
+      scheduler.addTask({
+        name: `pipeline-${hour}`,
+        cronExpression: `0 ${hour} * * 1-5`,
+        timezone: 'Asia/Shanghai',
+        handler: () => runPipeline(),
+      });
+    }
+  }
 
   scheduler.start();
 
   // Log next scheduled runs
-  const nextRuns = scheduler.getNextRuns(3);
+  const nextRuns = scheduler.getNextRuns(5);
   logger.info('Next scheduled runs:');
   nextRuns.forEach((date, i) => {
     logger.info(`  ${i + 1}. ${date.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`);
@@ -176,6 +198,20 @@ function getTimePeriod(args: string[]): TimePeriod | undefined {
 }
 
 /**
+ * Parse report type from args
+ */
+function getReportType(args: string[]): string | undefined {
+  const typeIndex = args.findIndex(arg => arg === '--report' || arg === '-r');
+  if (typeIndex !== -1 && args[typeIndex + 1]) {
+    const value = args[typeIndex + 1].toLowerCase();
+    if (['daily', 'weekly'].includes(value)) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Main entry point
  */
 async function main(): Promise<void> {
@@ -184,6 +220,7 @@ async function main(): Promise<void> {
   const isTest = args.includes('--test') || args.includes('-t');
   const isDryRun = args.includes('--dry-run') || args.includes('-d');
   const timePeriod = getTimePeriod(args);
+  const reportType = getReportType(args);
 
   // Validate configuration
   try {
@@ -217,6 +254,19 @@ async function main(): Promise<void> {
       }
     } catch (error) {
       logger.error('Test failed:', error);
+      process.exit(1);
+    }
+    return;
+  }
+
+  // Handle special report types (daily, weekly)
+  if (reportType === 'daily') {
+    logger.info('Generating daily deep report...');
+    try {
+      const report = await generateDailyReport({ hours: 24 });
+      logger.info('Daily report generated successfully');
+    } catch (error) {
+      logger.error('Failed to generate daily report:', error);
       process.exit(1);
     }
     return;
