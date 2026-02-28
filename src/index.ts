@@ -13,6 +13,7 @@ import { MacroAnalyzer } from './analyzer/macroAnalyzer';
 import { MarkdownStorage } from './storage/markdownStorage';
 import { getDatabase } from './storage/db';
 import { generateDailyReport } from './analyzer/dailyReport';
+import { generateWeeklyReport } from './analyzer/weeklyReport';
 import { FeishuClient } from './delivery/feishuClient';
 import { CardBuilder } from './delivery/cardBuilder';
 import { Scheduler, DEFAULT_SCHEDULE } from './scheduler';
@@ -118,7 +119,18 @@ async function runScheduled(): Promise<void> {
 
   const scheduler = new Scheduler();
 
-  // Parse cron expression to extract hours
+  // Add weekly report task (Monday 00:00)
+  scheduler.addTask({
+    name: 'weekly-report',
+    cronExpression: '0 0 * * 1',  // Every Monday at 00:00
+    timezone: 'Asia/Shanghai',
+    handler: async () => {
+      logger.info('Running weekly macro report...');
+      await generateWeeklyReport({ days: 7 });
+    },
+  });
+
+  // Parse cron expression to extract hours for daily tasks
   const cronParts = config.scheduler.cronExpression.split(' ');
   const hours = cronParts[1].split(',');
 
@@ -137,7 +149,7 @@ async function runScheduled(): Promise<void> {
         },
       });
     } else {
-      // Regular pipeline for other times
+      // Regular pipeline for other times (9, 12, 21)
       scheduler.addTask({
         name: `pipeline-${hour}`,
         cronExpression: `0 ${hour} * * 1-5`,
@@ -267,6 +279,18 @@ async function main(): Promise<void> {
       logger.info('Daily report generated successfully');
     } catch (error) {
       logger.error('Failed to generate daily report:', error);
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (reportType === 'weekly') {
+    logger.info('Generating weekly macro report...');
+    try {
+      const report = await generateWeeklyReport({ days: 7 });
+      logger.info('Weekly report generated successfully');
+    } catch (error) {
+      logger.error('Failed to generate weekly report:', error);
       process.exit(1);
     }
     return;

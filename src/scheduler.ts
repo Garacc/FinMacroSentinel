@@ -144,16 +144,18 @@ export class Scheduler {
 
 /**
  * Default scheduled times (Beijing timezone)
+ * 00:00 - Weekly report (every Monday)
  * 06:00 - Daily deep report (weekdays)
  * 09:00 - Pre-market analysis (weekdays)
  * 12:30 - Mid-day review (weekdays)
  * 21:00 - Evening/overseas preview (weekdays)
  */
 export const DEFAULT_SCHEDULE = {
-  daily: '0 6 * * 1-5',       // 06:00 Beijing, weekdays
-  preMarket: '0 9 * * 1-5',   // 09:00 Beijing, weekdays
-  midDay: '0 12 * * 1-5',     // 12:30 Beijing, weekdays
-  evening: '0 21 * * 1-5',    // 21:00 Beijing, weekdays
+  weekly: '0 0 * * 1',        // 00:00 Monday
+  daily: '0 6 * * 1-5',      // 06:00 Beijing, weekdays
+  preMarket: '0 9 * * 1-5',  // 09:00 Beijing, weekdays
+  midDay: '0 12 * * 1-5',    // 12:30 Beijing, weekdays
+  evening: '0 21 * * 1-5',   // 21:00 Beijing, weekdays
 };
 
 /**
