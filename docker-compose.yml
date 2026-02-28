@@ -1,0 +1,54 @@
+# FinMacroSentinel - Docker Compose
+# Automated financial news analysis and investment decision support system
+
+services:
+  finmacro-sentinel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finmacro-sentinel
+    restart: unless-stopped
+    environment:
+      # Anthropic Claude API
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
+      - ANTHROPIC_API_ENDPOINT=${ANTHROPIC_API_ENDPOINT:-}
+
+      # Feishu Configuration
+      - FEISHU_APP_ID=${FEISHU_APP_ID}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
+      - FEISHU_CHAT_ID=${FEISHU_CHAT_ID}
+
+      # Storage
+      - OUTPUT_DIR=/app/output
+
+      # Scheduler (default: weekdays 09:00, 12:30, 21:00 Beijing)
+      - SCHEDULE_CRON=${SCHEDULE_CRON:-0 9,12,21 * * *}
+
+      # Timezone
+      - TZ=Asia/Shanghai
+    volumes:
+      # Persist output reports
+      - ./output:/app/output
+      # Optional: persist data directory
+      - ./data:/app/data
+    # Run in scheduled mode by default
+    command: ["npm", "start", "--", "--schedule"]
+
+    # Optional: For one-time run use:
+    # command: ["npm", "start"]
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Network (for API calls)
+    networks:
+      - finmacro-network
+
+networks:
+  finmacro-network:
+    driver: bridge
