@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { logger } from './utils/logger';
+import { DEFAULT_SCHEDULE } from './scheduler';
 
 // Load .env file
 const envPath = path.resolve(process.cwd(), '.env');
@@ -72,8 +73,11 @@ export const config: Config = {
     outputDir: getOptionalEnv('OUTPUT_DIR', './output') || './output',
   },
   scheduler: {
-    // PRD 要求: 09:00 早盘预演, 12:30 午间复盘, 21:00 夜盘前瞻
-    cronExpression: getOptionalEnv('SCHEDULE_CRON', '0 9,12,21 * * *') || '0 9,12,21 * * *',
+    // Use DEFAULT_SCHEDULE from scheduler.ts
+    cronExpression: '0 ' +
+      [DEFAULT_SCHEDULE.daily, DEFAULT_SCHEDULE.preMarket, DEFAULT_SCHEDULE.midDay, DEFAULT_SCHEDULE.evening]
+        .map(c => c.split(' ')[1])
+        .join(',') + ' * * ' + DEFAULT_SCHEDULE.daily.split(' ')[4],
   },
 };
 
