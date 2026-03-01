@@ -1,6 +1,7 @@
 import { getReportById, getAllReports } from "@/lib/reports";
 import { remark } from "remark";
 import html from "remark-html";
+import gfm from "remark-gfm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -38,32 +39,30 @@ export default async function ReportPage({ params }: PageProps) {
     notFound();
   }
 
-  // 将 Markdown 转换为 HTML
+  // 将 Markdown 转换为 HTML (使用 gfm 插件支持表格)
   const processedContent = await remark()
+    .use(gfm)
     .use(html, { sanitize: false })
     .process(report.content);
   const contentHtml = processedContent.toString();
 
   return (
-    <div className="max-w-3xl">
-      {/* 返回链接 */}
-      <Link
-        href="/"
-        className="inline-flex items-center text-sm text-[var(--secondary)] hover:text-[var(--primary)] mb-8 no-underline transition-colors"
-      >
-        ← 返回报告列表
-      </Link>
-
-      {/* 简化元信息 */}
-      <div className="mb-8 text-sm text-[var(--secondary)]">
-        {report.meta.date} · {report.meta.time}
-      </div>
-
+    <div className="page-enter max-w-3xl">
       {/* 报告内容 */}
       <article
-        className="prose prose-lg max-w-none prose-headings:font-serif prose-headings:text-[var(--primary)] prose-p:text-[var(--content)] prose-a:text-[var(--accent)] prose-strong:text-[var(--primary)]"
+        className="prose prose-sm max-w-none"
         dangerouslySetInnerHTML={{ __html: contentHtml }}
       />
+
+      {/* 底部返回链接 */}
+      <div className="mt-10 pt-6 border-t border-[var(--border)]">
+        <Link
+          href="/"
+          className="inline-flex items-center text-sm text-[var(--secondary)] hover:text-[var(--primary)] no-underline transition-colors"
+        >
+          ← 返回报告列表
+        </Link>
+      </div>
     </div>
   );
 }
