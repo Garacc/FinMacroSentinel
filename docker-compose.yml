@@ -2,6 +2,7 @@
 # Automated financial news analysis and investment decision support system
 
 services:
+  # 后端服务：定时生成简报
   finmacro-sentinel:
     build:
       context: .
@@ -48,6 +49,32 @@ services:
     # Network (for API calls)
     networks:
       - finmacro-network
+
+  # Web 前端服务
+  finmacro-web:
+    build:
+      context: ./web
+      dockerfile: ../Dockerfile.web
+    container_name: finmacro-web
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      # 挂载 output 目录以读取报告
+      - ./output:/app/output
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    # Web 前端不需要特殊命令，使用默认的 next start
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - finmacro-network
+    depends_on:
+      - finmacro-sentinel
 
 networks:
   finmacro-network:
