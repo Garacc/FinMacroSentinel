@@ -10,6 +10,20 @@ import { logger } from '../utils/logger';
 import { MacroReport, StorageMetadata, NewsCategory, NewsItem } from '../types';
 import { tagsToString } from '../constants';
 
+/**
+ * Fix reference-style markdown links like [title][tag1][tag2](url)
+ * Convert to: [tag1][tag2] [title](url)
+ * LLM sometimes generates incorrect reference-style links
+ */
+function fixReferenceLinks(content: string): string {
+  // Match: [text][tag1][tag2](url) or [text][tag](url)
+  // Captures: 1=title, 2=allTags, 3=lastTag, 4=url
+  // Convert to: [tag1][tag2] [title](url) with space for compatibility
+  return content.replace(/\[([^\]]+)\]((\[[^\]]+\])+)\(([^)]+)\)/g, (_match, title, allTags, _lastTag, url) => {
+    return `${allTags} [${title}](${url})`;
+  });
+}
+
 export interface MarkdownStorageConfig {
   outputDir?: string;
 }
@@ -83,10 +97,16 @@ export class MarkdownStorage {
     if ((report as unknown as Record<string, unknown>).rawContent) {
       let content = (report as unknown as Record<string, unknown>).rawContent as string;
 
+      // Fix reference-style links: [title][tag](url) -> [tag] [title](url)
+      content = fixReferenceLinks(content);
+
       // Inject tags into source URLs
       if (report.sourceItems && report.sourceItems.length > 0) {
         content = this.injectTagsToSources(content, report.sourceItems);
       }
+
+      // Fix again after injectTagsToSources (it may create [title][tag](url) again)
+      content = fixReferenceLinks(content);
 
       lines.push(content);
       lines.push('');

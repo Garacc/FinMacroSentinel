@@ -3,11 +3,51 @@
  * Constructs Feishu interactive card JSON payloads
  */
 
-import { MacroReport, FeishuCard } from '../types';
+import { MacroReport, FeishuCard, NewsItem } from '../types';
+
+/**
+ * Inject tags into source URLs in markdown content for Feishu text_tag display
+ * Transforms: [Source Name](URL) -> <text_tag>tag</text_tag> [Source Name](URL)
+ */
+function injectTagsToSourcesForFeishu(content: string, sourceItems: NewsItem[]): string {
+  if (!sourceItems || sourceItems.length === 0) {
+    return content;
+  }
+
+  // Build URL -> tags mapping (flatten all tags to string array)
+  const urlTagMap = new Map<string, string[]>();
+  for (const item of sourceItems) {
+    if (item.tags) {
+      const allTags: string[] = [];
+      // Flatten all tag types into a single array
+      if (item.tags.primary) allTags.push(...item.tags.primary);
+      if (item.tags.asset) allTags.push(...item.tags.asset);
+      if (item.tags.region) allTags.push(...item.tags.region);
+      if (item.tags.time) allTags.push(...item.tags.time);
+      if (allTags.length > 0) {
+        urlTagMap.set(item.url, allTags);
+      }
+    }
+  }
+
+  // Replace pattern: [Source Name](URL) -> <text_tag>tag</text_tag> [Source Name](URL)
+  const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  return content.replace(regex, (match, sourceName, url) => {
+    const tags = urlTagMap.get(url);
+    if (tags && tags.length > 0) {
+      // Convert tags to text_tag elements
+      const tagElements = tags.map(tag =>
+        `<text_tag color='blue'>${tag}</text_tag>`
+      ).join(' ');
+      return `${tagElements} [${sourceName}](${url})`;
+    }
+    return match;
+  });
+}
 
 export interface CardBuilderConfig {
   wideScreenMode?: boolean;
-  headerTemplate?: 'blue' | 'green' | 'red' | 'yellow' | 'grey';
+  headerTemplate?: 'blue' | 'green' | 'red' | 'yellow' | 'grey' | 'wathet' | 'turquoise' | 'carmine' | 'violet' | 'purple' | 'indigo' | 'default';
 }
 
 /**
@@ -25,7 +65,7 @@ export class CardBuilder {
   }
 
   /**
-   * Build a Feishu card from a macro report
+   * Build a Feishu card from a macro report (JSON 2.0 format)
    */
   buildCard(report: MacroReport): FeishuCard {
     // Determine header template based on content
@@ -37,9 +77,12 @@ export class CardBuilder {
     // Build card content
     let content = this.buildCardContent(report);
 
+    // JSON 2.0 format with body element
     return {
+      schema: '2.0',
       config: {
         wide_screen_mode: this.config.wideScreenMode,
+        update_multi: true,
       },
       header: {
         title: {
@@ -48,15 +91,14 @@ export class CardBuilder {
         },
         template: headerTemplate,
       },
-      elements: [
-        {
-          tag: 'div',
-          text: {
+      body: {
+        elements: [
+          {
             tag: 'markdown',
             content,
           },
-        },
-      ],
+        ],
+      },
     };
   }
 
@@ -64,9 +106,16 @@ export class CardBuilder {
    * Build card content from report
    */
   private buildCardContent(report: MacroReport): string {
-    // If there's raw content, use it directly
+    // If there's raw content, inject tags for Feishu
     if ((report as unknown as Record<string, unknown>).rawContent) {
-      return (report as unknown as Record<string, unknown>).rawContent as string;
+      let content = (report as unknown as Record<string, unknown>).rawContent as string;
+
+      // Inject tags into source URLs using text_tag for Feishu
+      if (report.sourceItems && report.sourceItems.length > 0) {
+        content = injectTagsToSourcesForFeishu(content, report.sourceItems);
+      }
+
+      return content;
     }
 
     // If silent, use silence message

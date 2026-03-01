@@ -121,26 +121,27 @@ export interface MacroReport {
 }
 
 /**
- * Feishu message card structure
+ * Feishu message card structure (JSON 2.0)
  */
 export interface FeishuCard {
+  schema: '2.0';
   config: {
-    wide_screen_mode: boolean;
+    wide_screen_mode?: boolean;
+    update_multi?: boolean;
   };
   header: {
     title: {
-      tag: 'plain_text';
+      tag: 'plain_text' | 'lark_md';
       content: string;
     };
-    template: 'blue' | 'green' | 'red' | 'yellow' | 'grey';
+    template: 'blue' | 'green' | 'red' | 'yellow' | 'grey' | 'wathet' | 'turquoise' | 'carmine' | 'violet' | 'purple' | 'indigo' | 'default';
   };
-  elements: Array<{
-    tag: 'div';
-    text: {
+  body: {
+    elements: Array<{
       tag: 'markdown';
       content: string;
-    };
-  }>;
+    }>;
+  };
 }
 
 /**
