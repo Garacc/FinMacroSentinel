@@ -1,19 +1,6 @@
 import type { Metadata } from "next";
-import { Newsreader, Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-
-const newsreader = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "FinMacroSentinel 财经时报",
@@ -27,12 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body
-        className={`${newsreader.variable} ${inter.variable} antialiased`}
-      >
+      <body className="antialiased">
         <div className="min-h-screen flex flex-col">
           {/* 顶部导航 */}
-          <header className="border-b border-[var(--border)] bg-[var(--entry)] sticky top-0 z-50">
+          <header className="sticky top-0 z-50">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
               <Link
                 href="/"
@@ -44,7 +29,7 @@ export default function RootLayout({
               <nav className="flex gap-4 sm:gap-6 text-sm">
                 <Link
                   href="/"
-                  className="text-[var(--secondary)] hover:text-[var(--primary)] transition-colors relative group"
+                  className="text-[var(--secondary)] hover:text-[var(--accent)] transition-colors relative group"
                 >
                   报告列表
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[var(--accent)] transition-all group-hover:w-full"></span>
@@ -54,13 +39,13 @@ export default function RootLayout({
           </header>
 
           {/* 主内容区域 */}
-          <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6">
             {children}
           </main>
 
           {/* 页脚 */}
-          <footer className="border-t border-[var(--border)] bg-[var(--entry)]">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 text-center text-sm text-[var(--secondary)] opacity-70">
+          <footer>
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 text-center text-sm text-[var(--secondary)] opacity-60">
               FinMacroSentinel © 2026 · 机构级投研简报系统
             </div>
           </footer>

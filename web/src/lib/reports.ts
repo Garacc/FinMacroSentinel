@@ -11,6 +11,39 @@ export interface ReportMeta {
   time: string;
   generatedTime: string;
   summary: string; // 首席风控官寄语
+  tags: string[]; // 分类标签
+}
+
+/**
+ * 从 md 内容中提取分类标签（如 [宏观]、[商品]、[地缘] 等）
+ * 从信源溯源部分的 [...] 标记中提取
+ */
+function extractTags(content: string): string[] {
+  // 匹配 [...] 格式的标签，排除 URL 和特定模式
+  const tagRegex = /\[([^\]]+)\]/g;
+  const tags = new Set<string>();
+  let match;
+
+  while ((match = tagRegex.exec(content)) !== null) {
+    const tag = match[1].trim();
+    // 过滤掉非标签内容（URL、标题等）
+    if (
+      tag &&
+      !tag.includes('：') &&
+      !tag.includes(':') &&
+      !tag.startsWith('http') &&
+      !tag.includes('.com') &&
+      !tag.includes('.cn') &&
+      !tag.includes('【') &&
+      !tag.includes('】') &&
+      tag.length < 10
+    ) {
+      tags.add(tag);
+    }
+  }
+
+  // 返回最多6个标签
+  return Array.from(tags).slice(0, 6);
 }
 
 /**
@@ -53,6 +86,9 @@ export function getAllReports(): ReportMeta[] {
       // 提取标题和摘要（首席风控官寄语）
       const { title, summary } = extractTitleAndSummary(content);
 
+      // 提取分类标签
+      const tags = extractTags(content);
+
       // 从文件名提取日期和时间 (格式: YYYYMMDDHH)
       const date = id.substring(0, 8);
       const time = id.substring(8, 10);
@@ -68,6 +104,7 @@ export function getAllReports(): ReportMeta[] {
         time: formattedTime,
         generatedTime: data.generatedTime || '',
         summary: summary,
+        tags: tags,
       };
     })
     .sort((a, b) => {
@@ -91,6 +128,9 @@ export function getReportById(id: string): { meta: ReportMeta; content: string }
   // 提取标题和摘要（首席风控官寄语）
   const { title, summary } = extractTitleAndSummary(content);
 
+  // 提取分类标签
+  const tags = extractTags(content);
+
   // 跳过前4行（标题、空白行、生成时间、空白行），从第5行开始
   const contentLines = content.split('\n');
   const filteredContent = contentLines.slice(4).join('\n');
@@ -108,6 +148,7 @@ export function getReportById(id: string): { meta: ReportMeta; content: string }
     time: formattedTime,
     generatedTime: data.generatedTime || '',
     summary: summary,
+    tags: tags,
   };
 
   return { meta, content: filteredContent };

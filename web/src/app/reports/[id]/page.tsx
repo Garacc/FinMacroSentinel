@@ -47,7 +47,7 @@ export default async function ReportPage({ params }: PageProps) {
   const contentHtml = processedContent.toString();
 
   return (
-    <div className="page-enter max-w-3xl">
+    <div className="page-enter max-w-4xl">
       {/* 报告内容 */}
       <article
         className="prose prose-sm max-w-none"
@@ -58,7 +58,7 @@ export default async function ReportPage({ params }: PageProps) {
       <div className="mt-10 pt-6 border-t border-[var(--border)]">
         <Link
           href="/"
-          className="inline-flex items-center text-sm text-[var(--secondary)] hover:text-[var(--primary)] no-underline transition-colors"
+          className="inline-flex items-center text-sm text-[var(--secondary)] hover:text-[var(--accent)] no-underline transition-colors"
         >
           ← 返回报告列表
         </Link>
