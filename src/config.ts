@@ -27,6 +27,8 @@ export interface Config {
     appId: string;
     appSecret: string;
     chatId: string;
+    webhookUrl: string;
+    webhookSecret: string;
   };
   storage: {
     outputDir: string;
@@ -68,6 +70,8 @@ export const config: Config = {
     appId: getOptionalEnv('FEISHU_APP_ID', ''),
     appSecret: getOptionalEnv('FEISHU_APP_SECRET', ''),
     chatId: getOptionalEnv('FEISHU_CHAT_ID', ''),
+    webhookUrl: getOptionalEnv('FEISHU_WEBHOOK_URL', ''),
+    webhookSecret: getOptionalEnv('FEISHU_WEBHOOK_SECRET', ''),
   },
   storage: {
     outputDir: getOptionalEnv('OUTPUT_DIR', './output') || './output',

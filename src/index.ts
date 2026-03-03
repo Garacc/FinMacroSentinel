@@ -15,6 +15,7 @@ import { getDatabase } from './storage/db';
 import { generateDailyReport } from './analyzer/dailyReport';
 import { generateWeeklyReport } from './analyzer/weeklyReport';
 import { FeishuClient } from './delivery/feishuClient';
+import { FeishuRobotClient } from './delivery/feishuRobotClient';
 import { CardBuilder } from './delivery/cardBuilder';
 import { Scheduler, DEFAULT_SCHEDULE } from './scheduler';
 import { isValidCronExpression } from './scheduler';
@@ -29,6 +30,7 @@ export { LLMClient } from './analyzer/llmClient';
 export { MacroAnalyzer } from './analyzer/macroAnalyzer';
 export { MarkdownStorage } from './storage/markdownStorage';
 export { FeishuClient } from './delivery/feishuClient';
+export { FeishuRobotClient } from './delivery/feishuRobotClient';
 export { CardBuilder } from './delivery/cardBuilder';
 export { Scheduler } from './scheduler';
 export { DATA_SOURCES, getEnabledSources, FRED_SERIES };
@@ -78,11 +80,6 @@ async function runPipeline(options: { dryRun?: boolean; timePeriod?: TimePeriod;
     }
 
     // Step 2: Save to local storage
-    const feishuClient = new FeishuClient({
-      appId: config.feishu.appId,
-      appSecret: config.feishu.appSecret,
-      chatId: config.feishu.chatId,
-    });
     const cardBuilder = new CardBuilder();
 
     logger.info('Step 2: Saving report to local storage...');
@@ -96,8 +93,25 @@ async function runPipeline(options: { dryRun?: boolean; timePeriod?: TimePeriod;
       logger.info('Step 3: Sending to Feishu...');
       try {
         const card = cardBuilder.buildCard(report);
-        await feishuClient.sendMessage(card);
-        logger.info('Message sent to Feishu successfully');
+
+        // Use webhook-based robot client if configured, otherwise use API client
+        if (config.feishu.webhookUrl) {
+          const feishuRobotClient = new FeishuRobotClient({
+            webhookUrl: config.feishu.webhookUrl,
+          });
+          await feishuRobotClient.sendCard(card);
+          logger.info('Message sent to Feishu via webhook successfully');
+        } else if (config.feishu.appId && config.feishu.appSecret && config.feishu.chatId) {
+          const feishuClient = new FeishuClient({
+            appId: config.feishu.appId,
+            appSecret: config.feishu.appSecret,
+            chatId: config.feishu.chatId,
+          });
+          await feishuClient.sendMessage(card);
+          logger.info('Message sent to Feishu via API successfully');
+        } else {
+          logger.warn('Feishu not configured - skipping push');
+        }
       } catch (error) {
         logger.error('Failed to send to Feishu:', error);
         // Continue even if Feishu fails - we still have local storage
@@ -240,8 +254,9 @@ async function main(): Promise<void> {
     if (!config.anthropic.apiKey) {
       throw new Error('ANTHROPIC_API_KEY is required');
     }
-    if (!config.feishu.appId || !config.feishu.appSecret || !config.feishu.chatId) {
+    if (!config.feishu.webhookUrl && (!config.feishu.appId || !config.feishu.appSecret || !config.feishu.chatId)) {
       logger.warn('Feishu configuration incomplete - will skip Feishu delivery');
+      logger.warn('Configure either FEISHU_WEBHOOK_URL or (FEISHU_APP_ID, FEISHU_APP_SECRET, FEISHU_CHAT_ID)');
     }
     if (!isValidCronExpression(config.scheduler.cronExpression)) {
       throw new Error(`Invalid cron expression: ${config.scheduler.cronExpression}`);
