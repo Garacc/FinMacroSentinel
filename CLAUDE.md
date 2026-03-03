@@ -156,7 +156,7 @@ Note: This feature is configured globally in `~/.claude/settings.json` and appli
 
 <!-- MEMORY:START -->
 # FinMacroSentinel
-
+通过claude-mem查看记忆。
 _Last updated: 2026-02-21 | 0 active memories, 0 total_
 
 _For deeper context, use memory_search, memory_related, or memory_ask tools._
