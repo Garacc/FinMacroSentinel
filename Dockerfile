@@ -1,7 +1,7 @@
 # FinMacroSentinel - Dockerfile
 # Node.js application for automated financial news analysis
 
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Install build tools for native modules
 RUN apk add --no-cache python3 make g++ libc-dev
@@ -22,7 +22,7 @@ COPY tsconfig.json ./
 RUN npm run build
 
 # Production image
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
