@@ -54,9 +54,12 @@ function getOptionalEnv(key: string, defaultValue: string = ''): string {
  * Validate Feishu configuration
  */
 function validateFeishuConfig(config: Config): void {
-  if (!config.feishu.appId || !config.feishu.appSecret || !config.feishu.chatId) {
+  const hasApiConfig = config.feishu.appId && config.feishu.appSecret && config.feishu.chatId;
+  const hasWebhookConfig = config.feishu.webhookUrl;
+
+  if (!hasApiConfig && !hasWebhookConfig) {
     logger.warn('Feishu configuration is incomplete. Push to Feishu will be skipped.');
-    logger.warn('Required: FEISHU_APP_ID, FEISHU_APP_SECRET, FEISHU_CHAT_ID');
+    logger.warn('Required: FEISHU_WEBHOOK_URL or (FEISHU_APP_ID, FEISHU_APP_SECRET, FEISHU_CHAT_ID)');
   }
 }
 
