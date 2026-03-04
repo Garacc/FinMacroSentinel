@@ -15,10 +15,13 @@ services:
       - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
       - ANTHROPIC_API_ENDPOINT=${ANTHROPIC_API_ENDPOINT:-}
 
-      # Feishu Configuration
-      - FEISHU_APP_ID=${FEISHU_APP_ID}
-      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET}
-      - FEISHU_CHAT_ID=${FEISHU_CHAT_ID}
+      # Feishu Configuration (Webhook 方式)
+      - FEISHU_WEBHOOK_URL=${FEISHU_WEBHOOK_URL}
+      - FEISHU_WEBHOOK_SECRET=${FEISHU_WEBHOOK_SECRET:-}
+      # Feishu Configuration (API 方式)
+      - FEISHU_APP_ID=${FEISHU_APP_ID:-}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET:-}
+      - FEISHU_CHAT_ID=${FEISHU_CHAT_ID:-}
 
       # Storage
       - OUTPUT_DIR=/app/output
