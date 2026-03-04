@@ -182,25 +182,49 @@ export class ApiCollector {
   }
 
   /**
-   * Collect VIX data from CNBC RSS
+   * Collect VIX data from CBOE
    */
   async collectVixData(): Promise<NewsItem[]> {
     try {
+      // Try to get VIX data from CBOE
       const response = await this.client.get(
         'https://www.cnbc.com/id/10000664/device/rss/rss.html',
         { timeout: 10000 }
       );
 
-      // Extract VIX from RSS
-      const items: NewsItem[] = [];
+      // Extract VIX from RSS content
+      const html = response.data as string;
+      const vixMatch = html.match(/VIX[:\s]*(\d+\.?\d*)/i);
 
-      // Try to get VIX from the response or use an alternative
-      const vixTitle = '【市场情绪】VIX恐慌指数更新';
+      let vixValue = 'N/A';
+      if (vixMatch && vixMatch[1]) {
+        vixValue = vixMatch[1];
+      }
+
+      // Determine sentiment based on VIX value
+      const vixNum = parseFloat(vixValue);
+      let sentiment = '';
+      if (!isNaN(vixNum)) {
+        if (vixNum < 15) {
+          sentiment = '市场相对平静';
+        } else if (vixNum < 25) {
+          sentiment = '正常波动区间';
+        } else if (vixNum < 35) {
+          sentiment = '市场紧张';
+        } else {
+          sentiment = '高恐慌/风险规避';
+        }
+      }
+
+      const vixTitle = `【市场情绪】VIX恐慌指数: ${vixValue}`;
       const vixContent = `
 【VIX恐慌指数】
+- 当前值: ${vixValue}
+- 解读: ${sentiment}
+
 VIX (CBOE Volatility Index) 反映市场对未来30天波动率的预期
 
-解读:
+解读参考:
 - VIX < 15: 市场相对平静
 - VIX 15-25: 正常波动区间
 - VIX 25-35: 市场紧张
@@ -209,16 +233,14 @@ VIX (CBOE Volatility Index) 反映市场对未来30天波动率的预期
 数据来源: CBOE / CNBC
       `.trim();
 
-      items.push({
+      return [{
         title: vixTitle,
         content: vixContent,
         url: 'https://www.cnbc.com/investing/',
         source: 'VIX Index',
         category: NewsCategory.MACRO_FINANCE,
         timestamp: new Date(),
-      });
-
-      return items;
+      }];
     } catch (error) {
       logger.warn('Failed to collect VIX data:', error);
       return [];

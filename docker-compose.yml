@@ -26,6 +26,10 @@ services:
       # Scheduler (default: weekdays 09:00, 12:30, 21:00 Beijing)
       - SCHEDULE_CRON=${SCHEDULE_CRON:-0 9,12,21 * * *}
 
+      # API Data Sources
+      - FRED_API_KEY=${FRED_API_KEY:-}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY:-}
+
       # Timezone
       - TZ=Asia/Shanghai
     volumes:
