@@ -32,11 +32,8 @@ RUN apk add --no-cache tzdata python3 make g++ libc-dev
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies
-RUN npm ci --only=production || npm install --omit=dev
-
-# Rebuild better-sqlite3 for this environment (Node 20)
-RUN npm rebuild better-sqlite3
+# Install production dependencies - force build from source for better-sqlite3
+RUN npm install --omit=dev --build-from-source=better-sqlite3
 
 # Copy built files
 COPY --from=builder /app/dist/ ./dist/
