@@ -33,20 +33,40 @@ export class Scheduler {
   addTask(definition: TaskDefinition): void {
     logger.info(`Adding task: ${definition.name} with schedule: ${definition.cronExpression}`);
 
-    const task = cron.schedule(definition.cronExpression, async () => {
-      logger.info(`[CRON] Executing scheduled task: ${definition.name}`);
-      try {
-        await definition.handler();
-        logger.info(`[CRON] Task completed: ${definition.name}`);
-      } catch (error) {
-        logger.error(`[CRON] Task failed: ${definition.name}`, error);
-      }
-    }, {
-      timezone: this.timezone,
-      scheduled: true,
-    });
+    // Use setTimeout-based approach as a fallback
+    const checkAndRun = () => {
+      const now = new Date();
+      const [minute, hour, , , dayOfWeek] = [
+        now.getMinutes(),
+        now.getHours(),
+        now.getDate(),
+        now.getMonth(),
+        now.getDay()
+      ];
 
-    this.tasks.push(task);
+      // Simple cron parsing for our specific patterns
+      const [cronMin, cronHour, , , cronDay] = definition.cronExpression.split(' ');
+      const targetMins = cronMin.split(',').map(m => parseInt(m));
+      const targetHours = cronHour.split(',').map(h => parseInt(h));
+      const targetDays = cronDay.split(',').map(d => parseInt(d));
+
+      const dayMatches = targetDays.includes(dayOfWeek) || (targetDays.includes(1) && dayOfWeek >= 1 && dayOfWeek <= 5);
+
+      if (dayMatches && targetHours.includes(hour) && targetMins.includes(minute)) {
+        logger.info(`[CRON] Executing scheduled task: ${definition.name}`);
+        definition.handler().then(() => {
+          logger.info(`[CRON] Task completed: ${definition.name}`);
+        }).catch((error) => {
+          logger.error(`[CRON] Task failed: ${definition.name}`, error);
+        });
+      }
+    };
+
+    // Check every minute
+    const interval = setInterval(checkAndRun, 60000);
+    checkAndRun(); // Run immediately on start
+
+    this.tasks.push(interval as unknown as ScheduledTask);
     logger.info(`Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
   }
 
