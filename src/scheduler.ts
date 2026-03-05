@@ -31,20 +31,23 @@ export class Scheduler {
    * Add a scheduled task
    */
   addTask(definition: TaskDefinition): void {
+    logger.info(`Adding task: ${definition.name} with schedule: ${definition.cronExpression}`);
+
     const task = cron.schedule(definition.cronExpression, async () => {
-      logger.info(`Executing scheduled task: ${definition.name}`);
+      logger.info(`[CRON] Executing scheduled task: ${definition.name}`);
       try {
         await definition.handler();
-        logger.info(`Task completed: ${definition.name}`);
+        logger.info(`[CRON] Task completed: ${definition.name}`);
       } catch (error) {
-        logger.error(`Task failed: ${definition.name}`, error);
+        logger.error(`[CRON] Task failed: ${definition.name}`, error);
       }
     }, {
       timezone: this.timezone,
+      scheduled: true,
     });
 
     this.tasks.push(task);
-    logger.info(`Task scheduled: ${definition.name} (${definition.cronExpression})`);
+    logger.info(`Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
   }
 
   /**
