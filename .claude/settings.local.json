@@ -55,7 +55,8 @@
       "Bash(ssh-add:*)",
       "Bash(ssh ubuntu@43.153.172.12 \"echo 'SSH 连接成功！' && hostname && uptime\":*)",
       "Bash(ssh -o StrictHostKeyChecking=no ubuntu@43.153.172.12:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(git reset --soft HEAD~1)"
     ]
   }
 }
