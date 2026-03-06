@@ -15,6 +15,30 @@ export interface SchedulerConfig {
 }
 
 /**
+ * Expand cron field (e.g., "1-5" -> [1,2,3,4,5], "0,9,21" -> [0,9,21], "*" -> [0-59])
+ */
+function expandCronField(field: string): number[] {
+  // Handle wildcard - return all possible values (0-59 for minutes/hours, 0-6 for days)
+  if (field === '*') {
+    return [];
+  }
+
+  const result: number[] = [];
+  const parts = field.split(',');
+  for (const part of parts) {
+    if (part.includes('-')) {
+      const [start, end] = part.split('-').map(Number);
+      for (let i = start; i <= end; i++) {
+        result.push(i);
+      }
+    } else {
+      result.push(parseInt(part));
+    }
+  }
+  return result;
+}
+
+/**
  * Scheduler class
  * Manages scheduled execution of tasks
  */
@@ -35,24 +59,29 @@ export class Scheduler {
 
     // Use setTimeout-based approach as a fallback
     const checkAndRun = () => {
+      // Use Beijing time (UTC+8)
       const now = new Date();
+      const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
       const [minute, hour, , , dayOfWeek] = [
-        now.getMinutes(),
-        now.getHours(),
-        now.getDate(),
-        now.getMonth(),
-        now.getDay()
+        beijingTime.getMinutes(),
+        beijingTime.getHours(),
+        beijingTime.getDate(),
+        beijingTime.getMonth(),
+        beijingTime.getDay()
       ];
 
       // Simple cron parsing for our specific patterns
       const [cronMin, cronHour, , , cronDay] = definition.cronExpression.split(' ');
-      const targetMins = cronMin.split(',').map(m => parseInt(m));
-      const targetHours = cronHour.split(',').map(h => parseInt(h));
-      const targetDays = cronDay.split(',').map(d => parseInt(d));
+      const targetMins = expandCronField(cronMin);
+      const targetHours = expandCronField(cronHour);
+      const targetDays = expandCronField(cronDay);
 
-      const dayMatches = targetDays.includes(dayOfWeek) || (targetDays.includes(1) && dayOfWeek >= 1 && dayOfWeek <= 5);
+      // Wildcard (*) means match any value (empty array)
+      const dayMatches = targetDays.length === 0 || targetDays.includes(dayOfWeek);
+      const hourMatches = targetHours.length === 0 || targetHours.includes(hour);
+      const minMatches = targetMins.length === 0 || targetMins.includes(minute);
 
-      if (dayMatches && targetHours.includes(hour) && targetMins.includes(minute)) {
+      if (dayMatches && hourMatches && minMatches) {
         logger.info(`[CRON] Executing scheduled task: ${definition.name}`);
         definition.handler().then(() => {
           logger.info(`[CRON] Task completed: ${definition.name}`);
