@@ -129,9 +129,34 @@ async function runPipeline(options: { dryRun?: boolean; timePeriod?: TimePeriod;
  * Initialize and run in scheduled mode
  */
 async function runScheduled(): Promise<void> {
+  console.log('[TEST] Beginning runScheduled...');
+  logger.info('[TEST] Beginning runScheduled...');
+
+  console.log('[TEST] Starting FinMacroSentinel in scheduled mode...');
   logger.info('Starting FinMacroSentinel in scheduled mode...');
+  console.log('[TEST] After logger.info');
+  logger.info('[TEST] After logger.info');
 
   const scheduler = new Scheduler();
+  console.log('[TEST] After Scheduler()');
+  logger.info('[TEST] After Scheduler()');
+
+  // Test task: runs every minute to verify scheduler works
+  const now = new Date();
+  const minute = now.getMinutes();
+  console.log(`[TEST] Adding test task for minute ${minute}`);
+  logger.info(`[TEST] Adding test task for minute ${minute}`);
+  scheduler.addTask({
+    name: 'test-every-minute',
+    cronExpression: `${minute} * * * *`,
+    timezone: 'Asia/Shanghai',
+    handler: async () => {
+      console.log('[TEST] Test cron task handler EXECUTED at minute ' + minute);
+      logger.info('[TEST] Test cron task executed at minute ' + minute);
+    },
+  });
+  console.log('[TEST] Test task added');
+  logger.info('[TEST] Test task added');
 
   // Add weekly report task (Monday 00:00)
   scheduler.addTask({
