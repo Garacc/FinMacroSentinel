@@ -70,7 +70,9 @@ export class Scheduler {
         const dayOfWeek = beijingTime.getDay();
 
         // Always use console.log for check - this will show in Docker
-        console.log(`[CRON] CHECK: ${definition.name} | beijing=${beijingTime.toISOString()} | min=${minute} hour=${hour} dow=${dayOfWeek} | cron=${definition.cronExpression}`);
+        // Format Beijing time properly
+        const beijingTimeStr = beijingTime.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+        console.log(`[CRON] CHECK: ${definition.name} | 北京时间=${beijingTimeStr} | min=${minute} hour=${hour} dow=${dayOfWeek} | cron=${definition.cronExpression}`);
 
         // Simple cron parsing for our specific patterns (5 fields: min hour day month dayOfWeek)
         const parts = definition.cronExpression.trim().split(/\s+/);
