@@ -62,17 +62,17 @@ export class Scheduler {
     // Use setTimeout-based approach as a fallback
     const checkAndRun = () => {
       try {
-        // Use Beijing time (UTC+8)
+        // Server is already in Beijing timezone (TZ=Asia/Shanghai in Dockerfile)
+        // So just use local time directly
         const now = new Date();
-        const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-        const minute = beijingTime.getMinutes();
-        const hour = beijingTime.getHours();
-        const dayOfWeek = beijingTime.getDay();
+        const minute = now.getMinutes();
+        const hour = now.getHours();
+        const dayOfWeek = now.getDay();
 
         // Always use console.log for check - this will show in Docker
-        // Format Beijing time properly
-        const beijingTimeStr = beijingTime.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
-        console.log(`[CRON] CHECK: ${definition.name} | 北京时间=${beijingTimeStr} | min=${minute} hour=${hour} dow=${dayOfWeek} | cron=${definition.cronExpression}`);
+        // Format time properly
+        const localTimeStr = now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+        console.log(`[CRON] CHECK: ${definition.name} | 北京时间=${localTimeStr} | min=${minute} hour=${hour} dow=${dayOfWeek} | cron=${definition.cronExpression}`);
 
         // Simple cron parsing for our specific patterns (5 fields: min hour day month dayOfWeek)
         const parts = definition.cronExpression.trim().split(/\s+/);
