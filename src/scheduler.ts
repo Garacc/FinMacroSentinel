@@ -55,11 +55,15 @@ export class Scheduler {
    * Add a scheduled task
    */
   addTask(definition: TaskDefinition): void {
-    // Use both console.log and logger to ensure visibility in Docker
-    console.log(`[CRON] Adding task: ${definition.name} with schedule: ${definition.cronExpression}`);
+    // Use process.stdout.write for unbuffered output in Docker
+    const log = (msg: string) => {
+      process.stdout.write(msg + '\n');
+    };
+
+    log(`[CRON] Adding task: ${definition.name} with schedule: ${definition.cronExpression}`);
     logger.info(`[CRON] Adding task: ${definition.name} with schedule: ${definition.cronExpression}`);
 
-    // Use setTimeout-based approach as a fallback
+    // Use setInterval-based approach
     const checkAndRun = () => {
       try {
         // Server is already in Beijing timezone (TZ=Asia/Shanghai in Dockerfile)
@@ -69,10 +73,9 @@ export class Scheduler {
         const hour = now.getHours();
         const dayOfWeek = now.getDay();
 
-        // Always use console.log for check - this will show in Docker
-        // Format time properly
+        // Use process.stdout.write for real-time output
         const localTimeStr = now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
-        console.log(`[CRON] CHECK: ${definition.name} | 北京时间=${localTimeStr} | min=${minute} hour=${hour} dow=${dayOfWeek} | cron=${definition.cronExpression}`);
+        log(`[CRON] CHECK: ${definition.name} | 北京时间=${localTimeStr} | min=${minute} hour=${hour} dow=${dayOfWeek} | cron=${definition.cronExpression}`);
 
         // Simple cron parsing for our specific patterns (5 fields: min hour day month dayOfWeek)
         const parts = definition.cronExpression.trim().split(/\s+/);
@@ -83,28 +86,28 @@ export class Scheduler {
         const targetHours = expandCronField(cronHour);
         const targetDays = expandCronField(cronDay);
 
-        console.log(`[CRON] PARSE: targetMins=${JSON.stringify(targetMins)} targetHours=${JSON.stringify(targetHours)} targetDays=${JSON.stringify(targetDays)}`);
+        log(`[CRON] PARSE: targetMins=${JSON.stringify(targetMins)} targetHours=${JSON.stringify(targetHours)} targetDays=${JSON.stringify(targetDays)}`);
 
         // Wildcard (*) means match any value (empty array)
         const dayMatches = targetDays.length === 0 || targetDays.includes(dayOfWeek);
         const hourMatches = targetHours.length === 0 || targetHours.includes(hour);
         const minMatches = targetMins.length === 0 || targetMins.includes(minute);
 
-        console.log(`[CRON] MATCH: day=${dayMatches} hour=${hourMatches} min=${minMatches} => ${dayMatches && hourMatches && minMatches ? 'EXECUTE' : 'skip'}`);
+        log(`[CRON] MATCH: day=${dayMatches} hour=${hourMatches} min=${minMatches} => ${dayMatches && hourMatches && minMatches ? 'EXECUTE' : 'skip'}`);
 
         if (dayMatches && hourMatches && minMatches) {
-          console.log(`[CRON] EXECUTING: ${definition.name}`);
+          log(`[CRON] EXECUTING: ${definition.name}`);
           logger.info(`[CRON] Executing scheduled task: ${definition.name}`);
           definition.handler().then(() => {
-            console.log(`[CRON] COMPLETED: ${definition.name}`);
+            log(`[CRON] COMPLETED: ${definition.name}`);
             logger.info(`[CRON] Task completed: ${definition.name}`);
           }).catch((error) => {
-            console.log(`[CRON] FAILED: ${definition.name} - ${error}`);
+            log(`[CRON] FAILED: ${definition.name} - ${error}`);
             logger.error(`[CRON] Task failed: ${definition.name}`, error);
           });
         }
       } catch (err) {
-        console.log(`[CRON] ERROR: ${definition.name} - ${err}`);
+        log(`[CRON] ERROR: ${definition.name} - ${err}`);
         logger.error(`[CRON] Error in ${definition.name}:`, err);
       }
     };
@@ -114,7 +117,7 @@ export class Scheduler {
     checkAndRun(); // Run immediately on start
 
     this.tasks.push(interval as unknown as ScheduledTask);
-    console.log(`[CRON] Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
+    log(`[CRON] Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
     logger.info(`Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
   }
 
