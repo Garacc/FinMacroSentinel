@@ -45,5 +45,5 @@ RUN mkdir -p output
 ENV TZ=Asia/Shanghai
 ENV NODE_ENV=production
 
-# Default command runs in scheduled mode with unbuffered stdout
-CMD ["node", "--unbuffered", "dist/index.js", "--schedule"]
+# Default command runs in scheduled mode
+CMD ["npm", "start", "--", "--schedule"]
