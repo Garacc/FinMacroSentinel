@@ -154,6 +154,59 @@ This project uses **claude-mem** for conversation memory:
 
 Note: This feature is configured globally in `~/.claude/settings.json` and applies to all projects.
 
+## Debugging Lessons Learned (2026-03)
+
+### 1. Scheduler Not Executing - Root Causes & Solutions
+
+**Problem**: Scheduled tasks (9:00, 12:00, 21:00 Beijing time) were not executing.
+
+**Root Causes Found**:
+
+1. **Timezone Issue**
+   - Symptom: Tasks were checking at wrong time (UTC instead of Beijing time)
+   - Cause: Initially added `+8 hours` to convert UTC to Beijing time
+   - Solution: Removed the calculation - Docker container already has `TZ=Asia/Shanghai` set in Dockerfile, so `new Date().getHours()` already returns Beijing time
+
+2. **Console Output Buffering**
+   - Symptom: Logs showed "Scheduler started" but no further log output appeared
+   - Cause: Node.js `console.log` was buffered, not showing in `docker logs` in real-time
+   - Solution: Changed from `console.log()` to `process.stdout.write()` for unbuffered output
+
+3. **Cron Range Parsing**
+   - Symptom: Tasks with ranges like `1-5` (weekdays) weren't matching
+   - Cause: Simple string comparison didn't handle range syntax
+   - Solution: Added `expandCronField()` function to parse ranges like `1-5` → `[1,2,3,4,5]`
+
+### Key Files Modified
+
+- `src/scheduler.ts` - Core scheduler logic with timezone and cron parsing
+- `Dockerfile` - Contains `ENV TZ=Asia/Shanghai`
+
+### Deployment Notes
+
+```bash
+# Connect to server
+ssh ubuntu@43.153.172.112
+sudo -i
+
+# Deploy updates
+cd /root/codes/FinMacroSentinel
+git pull
+docker-compose build --no-cache finmacro-sentinel
+docker-compose up -d finmacro-sentinel
+
+# View logs
+docker logs -f finmacro-sentinel
+```
+
+### Lessons for Future Debugging
+
+1. **Always verify timezone configuration first** - Check if container has `TZ` env var set
+2. **Use `process.stdout.write()` for real-time logging** in Docker environments
+3. **Test with manual trigger first** - Use `docker exec <container> npm start` to verify
+4. **Check logs with `docker logs -f`** in real-time rather than `docker logs --tail`
+5. **Cron range syntax**: Use `1-5` for weekdays, `*` for any value
+
 <!-- MEMORY:START -->
 # FinMacroSentinel
 通过claude-mem查看记忆。
