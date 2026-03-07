@@ -207,6 +207,55 @@ docker logs -f finmacro-sentinel
 4. **Check logs with `docker logs -f`** in real-time rather than `docker logs --tail`
 5. **Cron range syntax**: Use `1-5` for weekdays, `*` for any value
 
+### Remote Server Debugging Guide
+
+#### SSH Connection
+
+```bash
+# Basic connection (user may need sudo)
+ssh ubuntu@<server-ip>
+
+# Then escalate to root
+sudo -i
+```
+
+#### Common Issues & Solutions
+
+1. **Permission Denied (publickey, password)**
+   - Try different users: `ubuntu`, `root`, `ec2-user`
+   - Check SSH key path (e.g., `~/.ssh/id_rsa` or custom key)
+   - Use `-o PreferredAuthentications=password` for password auth
+
+2. **Docker Command Permission**
+   - Most Docker operations require root: use `sudo -i` first
+   - Or use `sudo <command>` prefix
+
+3. **Finding Server IP**
+   - Check `~/.ssh/known_hosts` for known server IPs
+   - Check project notes or deployment docs
+
+#### Quick Debug Commands
+
+```bash
+# Check server time
+date
+
+# Check container status
+docker ps
+
+# View container logs (real-time)
+docker logs -f <container>
+
+# Execute command in container
+docker exec <container> <command>
+
+# Restart container
+docker restart <container>
+
+# Build and deploy
+docker-compose up -d --build <service>
+```
+
 <!-- MEMORY:START -->
 # FinMacroSentinel
 通过claude-mem查看记忆。
