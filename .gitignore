@@ -10,3 +10,12 @@ output/
 
 # Memory MCP
 .memory/
+
+# Local data storage
+data/
+
+# URL to markdown cache
+url-to-markdown/
+
+# Claude Code settings and prompts (local only)
+CLAUDE.md
