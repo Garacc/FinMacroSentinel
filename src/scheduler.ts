@@ -27,9 +27,9 @@ export class Scheduler {
    * Add a scheduled task
    */
   addTask(definition: TaskDefinition): void {
-    // Use process.stdout.write for unbuffered output in Docker
+    // Use process.stderr.write for unbuffered output in Docker
     const log = (msg: string) => {
-      process.stdout.write(msg + '\n');
+      process.stderr.write(msg + '\n');
     };
 
     log(`[CRON] Adding task: ${definition.name} with schedule: ${definition.cronExpression}`);
