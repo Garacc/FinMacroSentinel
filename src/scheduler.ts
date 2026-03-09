@@ -94,12 +94,13 @@ export class Scheduler {
       }
     };
 
-    // Run immediately on start, then every minute
-    handler();
-    const interval = setInterval(() => {
-      process.stdout.write(`[CRON] TIMER FIRED: ${definition.name} at ${new Date().toISOString()}\n`);
+    // Run immediately on start, then every minute using recursive setTimeout
+    const runHandler = () => {
       handler();
-    }, 60000);
+      // Use setTimeout instead of setInterval for more reliable execution
+      setTimeout(runHandler, 60000);
+    };
+    setTimeout(runHandler, 60000);
 
     this.tasks.push({
       definition,
