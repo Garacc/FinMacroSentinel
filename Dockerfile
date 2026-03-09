@@ -46,4 +46,4 @@ ENV TZ=Asia/Shanghai
 ENV NODE_ENV=production
 
 # Default command runs in scheduled mode
-CMD ["npm", "start", "--", "--schedule"]
+CMD ["node", "dist/index.js", "--schedule"]
