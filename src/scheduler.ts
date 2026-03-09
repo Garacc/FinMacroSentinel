@@ -31,7 +31,9 @@ export class Scheduler {
       return;
     }
 
-    logger.info(`[CRON] Adding task: ${definition.name} with schedule: ${definition.cronExpression}`);
+    // Use timezone from task definition or fallback to scheduler default
+    const tz = definition.timezone || this.timezone;
+    logger.info(`[CRON] Adding task: ${definition.name} with schedule: ${definition.cronExpression}, timezone: ${tz}`);
 
     // Use node-cron for scheduling
     const task = cron.schedule(definition.cronExpression, async () => {
