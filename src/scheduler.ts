@@ -95,8 +95,13 @@ export class Scheduler {
     };
 
     // Run immediately on start, then every minute
+    process.stdout.write(`[CRON] DEBUG: Setting up interval for ${definition.name}\n`);
     handler();
-    const interval = setInterval(handler, 60000);
+    const interval = setInterval(() => {
+      process.stdout.write(`[CRON] TIMER FIRED for ${definition.name} at ${new Date().toISOString()}\n`);
+      handler();
+    }, 60000);
+    process.stdout.write(`[CRON] DEBUG: Interval set up for ${definition.name}\n`);
 
     this.tasks.push({
       definition,
