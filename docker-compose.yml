@@ -41,10 +41,10 @@ services:
       # Optional: persist data directory
       - ./data:/app/data
     # Run in scheduled mode by default
-    command: ["npm", "start", "--", "--schedule"]
+    command: ["node", "dist/index.js", "--schedule"]
 
     # Optional: For one-time run use:
-    # command: ["npm", "start"]
+    # command: ["node", "dist/index.js"]
 
     # Logging
     logging:
