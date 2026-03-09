@@ -1,7 +1,7 @@
 /**
  * Scheduler Module
  * Manages cron-based scheduled tasks
- * Uses native setInterval with cron parsing
+ * Uses native setTimeout with cron parsing
  */
 
 import { logger } from './utils/logger';
@@ -9,12 +9,12 @@ import { ScheduledTask as TaskDefinition } from './types';
 
 /**
  * Scheduler class
- * Manages scheduled execution of tasks using native setInterval
+ * Manages scheduled execution of tasks
  */
 export class Scheduler {
   private tasks: Array<{
     definition: TaskDefinition;
-    interval: NodeJS.Timeout;
+    timeout: NodeJS.Timeout;
   }> = [];
   private timezone: string;
   private isRunning: boolean = false;
@@ -94,13 +94,26 @@ export class Scheduler {
       }
     };
 
-    // Run immediately on start, then every minute using recursive setTimeout
-    const runHandler = () => {
-      handler();
-      // Use setTimeout instead of setInterval for more reliable execution
-      setTimeout(runHandler, 60000);
+    // Run immediately on start
+    handler();
+
+    // Use setTimeout with recursive calls for more reliable execution
+    const scheduleNext = () => {
+      const now = new Date();
+      const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+      const timeout = setTimeout(async () => {
+        await handler();
+        scheduleNext();
+      }, msUntilNextMinute);
+
+      this.tasks.push({
+        definition,
+        timeout,
+      });
     };
-    setTimeout(runHandler, 60000);
+
+    scheduleNext();
 
     log(`[CRON] Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
     logger.info(`Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
@@ -159,7 +172,7 @@ export class Scheduler {
    */
   stop(): void {
     for (const task of this.tasks) {
-      clearInterval(task.interval);
+      clearTimeout(task.timeout);
     }
     this.tasks = [];
     this.isRunning = false;
@@ -218,18 +231,13 @@ export class Scheduler {
 
 /**
  * Default scheduled times (Beijing timezone)
- * 00:00 - Weekly report (every Monday)
- * 06:00 - Daily deep report (weekdays)
- * 09:00 - Pre-market analysis (weekdays)
- * 12:30 - Mid-day review (weekdays)
- * 21:00 - Evening/overseas preview (weekdays)
  */
 export const DEFAULT_SCHEDULE = {
-  weekly: '0 0 * * 1',        // 00:00 Monday
-  daily: '0 6 * * 1-5',      // 06:00 Beijing, weekdays
-  preMarket: '0 9 * * 1-5',  // 09:00 Beijing, weekdays
-  midDay: '30 12 * * 1-5',   // 12:30 Beijing, weekdays
-  evening: '0 21 * * 1-5',   // 21:00 Beijing, weekdays
+  weekly: '0 0 * * 1',
+  daily: '0 6 * * 1-5',
+  preMarket: '0 9 * * 1-5',
+  midDay: '30 12 * * 1-5',
+  evening: '0 21 * * 1-5',
 };
 
 /**
