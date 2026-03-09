@@ -26,8 +26,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install build tools and cron
-RUN apk add --no-cache tzdata python3 make g++ libc-dev dcron
+# Install dumb-init for proper PID 1 behavior
+RUN apk add --no-cache dumb-init
+
+# Install build tools
+RUN apk add --no-cache tzdata python3 make g++ libc-dev
 
 # Copy package files
 COPY package*.json ./
@@ -45,8 +48,8 @@ RUN mkdir -p output
 ENV TZ=Asia/Shanghai
 ENV NODE_ENV=production
 
-# Copy crontab file
-COPY crontab /etc/crontabs/root
+# Use dumb-init as PID 1, which properly handles child processes and signals
+ENTRYPOINT ["dumb-init", "--"]
 
-# Default command runs cron daemon in foreground
-CMD ["crond", "-f", "-l", "2"]
+# Default command runs in scheduled mode
+CMD ["node", "dist/index.js", "--schedule"]

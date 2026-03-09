@@ -1,9 +1,0 @@
-# FinMacroSentinel Crontab
-# Run at 9:00 AM Beijing time on weekdays (Mon-Fri)
-0 1 * * 1-5 node /app/dist/index.js >> /proc/1/fd/1 2>&1
-
-# Run at 12:00 PM Beijing time on weekdays (Mon-Fri)
-0 14 * * 1-5 node /app/dist/index.js >> /proc/1/fd/1 2>&1
-
-# Run at 9:00 PM Beijing time on weekdays (Mon-Fri)
-0 13 * * 1-5 node /app/dist/index.js >> /proc/1/fd/1 2>&1
