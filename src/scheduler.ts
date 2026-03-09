@@ -1,46 +1,16 @@
 /**
  * Scheduler Module
  * Manages cron-based scheduled tasks
- * Supports Beijing timezone (UTC+8)
+ * Uses node-cron for reliable scheduling
  */
 
 import cron, { ScheduledTask } from 'node-cron';
 import { logger } from './utils/logger';
 import { ScheduledTask as TaskDefinition } from './types';
 
-export interface SchedulerConfig {
-  cronExpression?: string;
-  timezone?: string;
-  defaultCronExpression?: string;
-}
-
-/**
- * Expand cron field (e.g., "1-5" -> [1,2,3,4,5], "0,9,21" -> [0,9,21], "*" -> [0-59])
- */
-function expandCronField(field: string): number[] {
-  // Handle wildcard - return all possible values (0-59 for minutes/hours, 0-6 for days)
-  if (field === '*') {
-    return [];
-  }
-
-  const result: number[] = [];
-  const parts = field.split(',');
-  for (const part of parts) {
-    if (part.includes('-')) {
-      const [start, end] = part.split('-').map(Number);
-      for (let i = start; i <= end; i++) {
-        result.push(i);
-      }
-    } else {
-      result.push(parseInt(part));
-    }
-  }
-  return result;
-}
-
 /**
  * Scheduler class
- * Manages scheduled execution of tasks
+ * Manages scheduled execution of tasks using node-cron
  */
 export class Scheduler {
   private tasks: ScheduledTask[] = [];
@@ -52,73 +22,39 @@ export class Scheduler {
   }
 
   /**
-   * Add a scheduled task
+   * Add a scheduled task using node-cron
    */
   addTask(definition: TaskDefinition): void {
-    // Use process.stdout.write for unbuffered output in Docker
-    const log = (msg: string) => {
-      process.stdout.write(msg + '\n');
-    };
+    // Validate cron expression
+    if (!cron.validate(definition.cronExpression)) {
+      logger.error(`Invalid cron expression: ${definition.cronExpression}`);
+      return;
+    }
 
-    log(`[CRON] Adding task: ${definition.name} with schedule: ${definition.cronExpression}`);
     logger.info(`[CRON] Adding task: ${definition.name} with schedule: ${definition.cronExpression}`);
 
-    // Use setInterval-based approach
-    const checkAndRun = () => {
+    // Use node-cron for scheduling
+    const task = cron.schedule(definition.cronExpression, async () => {
+      const now = new Date();
+      const localTimeStr = now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+
+      process.stdout.write(`[CRON] EXECUTING: ${definition.name} at ${localTimeStr}\n`);
+      logger.info(`[CRON] Executing scheduled task: ${definition.name}`);
+
       try {
-        // Server is already in Beijing timezone (TZ=Asia/Shanghai in Dockerfile)
-        // So just use local time directly
-        const now = new Date();
-        const minute = now.getMinutes();
-        const hour = now.getHours();
-        const dayOfWeek = now.getDay();
-
-        // Use process.stdout.write for real-time output
-        const localTimeStr = now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
-        log(`[CRON] CHECK: ${definition.name} | 北京时间=${localTimeStr} | min=${minute} hour=${hour} dow=${dayOfWeek} | cron=${definition.cronExpression}`);
-
-        // Simple cron parsing for our specific patterns (5 fields: min hour day month dayOfWeek)
-        const parts = definition.cronExpression.trim().split(/\s+/);
-        const cronMin = parts[0];
-        const cronHour = parts[1];
-        const cronDay = parts[4] || '*';
-        const targetMins = expandCronField(cronMin);
-        const targetHours = expandCronField(cronHour);
-        const targetDays = expandCronField(cronDay);
-
-        log(`[CRON] PARSE: targetMins=${JSON.stringify(targetMins)} targetHours=${JSON.stringify(targetHours)} targetDays=${JSON.stringify(targetDays)}`);
-
-        // Wildcard (*) means match any value (empty array)
-        const dayMatches = targetDays.length === 0 || targetDays.includes(dayOfWeek);
-        const hourMatches = targetHours.length === 0 || targetHours.includes(hour);
-        const minMatches = targetMins.length === 0 || targetMins.includes(minute);
-
-        log(`[CRON] MATCH: day=${dayMatches} hour=${hourMatches} min=${minMatches} => ${dayMatches && hourMatches && minMatches ? 'EXECUTE' : 'skip'}`);
-
-        if (dayMatches && hourMatches && minMatches) {
-          log(`[CRON] EXECUTING: ${definition.name}`);
-          logger.info(`[CRON] Executing scheduled task: ${definition.name}`);
-          definition.handler().then(() => {
-            log(`[CRON] COMPLETED: ${definition.name}`);
-            logger.info(`[CRON] Task completed: ${definition.name}`);
-          }).catch((error) => {
-            log(`[CRON] FAILED: ${definition.name} - ${error}`);
-            logger.error(`[CRON] Task failed: ${definition.name}`, error);
-          });
-        }
-      } catch (err) {
-        log(`[CRON] ERROR: ${definition.name} - ${err}`);
-        logger.error(`[CRON] Error in ${definition.name}:`, err);
+        await definition.handler();
+        process.stdout.write(`[CRON] COMPLETED: ${definition.name}\n`);
+        logger.info(`[CRON] Task completed: ${definition.name}`);
+      } catch (error) {
+        process.stdout.write(`[CRON] FAILED: ${definition.name} - ${error}\n`);
+        logger.error(`[CRON] Task failed: ${definition.name}`, error);
       }
-    };
+    }, {
+      timezone: this.timezone,
+    });
 
-    // Check every minute
-    const interval = setInterval(checkAndRun, 60000);
-    checkAndRun(); // Run immediately on start
-
-    this.tasks.push(interval as unknown as ScheduledTask);
-    log(`[CRON] Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
-    logger.info(`Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
+    this.tasks.push(task);
+    logger.info(`[CRON] Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
   }
 
   /**
@@ -171,25 +107,27 @@ export class Scheduler {
    * Get next scheduled execution times
    */
   getNextRuns(count: number = 5, cronExpr: string = '0 9,12,21 * * *'): Date[] {
-    // This is a simplified implementation
-    // In production, you might want more detailed scheduling info
+    // Use node-cron's scheduledTasks to get next run times
+    const tasks = cron.schedule(cronExpr, () => {}, {
+      scheduled: false,
+    });
+
+    // node-cron doesn't expose next run times directly
+    // Calculate manually
     const now = new Date();
     const runs: Date[] = [];
 
-    // Parse the cron expression to get next run times
     const parts = cronExpr.split(' ');
     if (parts.length >= 5) {
       const [, hours, minutes] = parts;
       const hourList = hours.split(',').map(Number);
       const minuteList = minutes ? minutes.split(',').map(Number) : [0];
 
-      // Find the next valid run times
       let current = new Date(now);
       current.setSeconds(0, 0);
 
       while (runs.length < count) {
-        // Move to next hour
-        current = new Date(current.getTime() + 60 * 60 * 1000);
+        current = new Date(current.getTime() + 60 * 1000);
 
         for (const hour of hourList) {
           if (runs.length >= count) break;
@@ -204,7 +142,6 @@ export class Scheduler {
           }
         }
 
-        // If no more runs today, move to tomorrow
         if (runs.length === 0 && current.getHours() >= Math.max(...hourList)) {
           current.setDate(current.getDate() + 1);
           current.setHours(0, 0, 0, 0);
@@ -226,16 +163,16 @@ export class Scheduler {
  */
 export const DEFAULT_SCHEDULE = {
   weekly: '0 0 * * 1',        // 00:00 Monday
-  daily: '0 6 * * 1-5',      // 06:00 Beijing, weekdays
-  preMarket: '0 9 * * 1-5',  // 09:00 Beijing, weekdays
-  midDay: '0 12 * * 1-5',    // 12:30 Beijing, weekdays
-  evening: '0 21 * * 1-5',   // 21:00 Beijing, weekdays
+  daily: '0 6 * * 1-5',       // 06:00 Beijing, weekdays
+  preMarket: '0 9 * * 1-5',   // 09:00 Beijing, weekdays
+  midDay: '30 12 * * 1-5',    // 12:30 Beijing, weekdays
+  evening: '0 21 * * 1-5',    // 21:00 Beijing, weekdays
 };
 
 /**
  * Factory function to create a scheduler
  */
-export function createScheduler(config?: SchedulerConfig): Scheduler {
+export function createScheduler(config?: { timezone?: string }): Scheduler {
   return new Scheduler(config?.timezone);
 }
 
