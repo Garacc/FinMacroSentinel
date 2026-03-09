@@ -26,8 +26,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install build tools for native modules
-RUN apk add --no-cache tzdata python3 make g++ libc-dev
+# Install build tools and cron
+RUN apk add --no-cache tzdata python3 make g++ libc-dev dcron
 
 # Copy package files
 COPY package*.json ./
@@ -45,5 +45,8 @@ RUN mkdir -p output
 ENV TZ=Asia/Shanghai
 ENV NODE_ENV=production
 
-# Default command runs in scheduled mode
-CMD ["node", "dist/index.js", "--schedule"]
+# Copy crontab file
+COPY crontab /etc/crontabs/root
+
+# Default command runs cron daemon in foreground
+CMD ["crond", "-f", "-l", "2"]
