@@ -102,11 +102,6 @@ export class Scheduler {
     };
     setTimeout(runHandler, 60000);
 
-    this.tasks.push({
-      definition,
-      interval,
-    });
-
     log(`[CRON] Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
     logger.info(`Task scheduled successfully: ${definition.name} (${definition.cronExpression})`);
   }
