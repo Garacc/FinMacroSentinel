@@ -49,8 +49,6 @@ export class Scheduler {
         process.stdout.write(`[CRON] FAILED: ${definition.name} - ${error}\n`);
         logger.error(`[CRON] Task failed: ${definition.name}`, error);
       }
-    }, {
-      timezone: this.timezone,
     });
 
     this.tasks.push(task);
