@@ -40,11 +40,7 @@ services:
       - ./output:/app/output
       # Optional: persist data directory
       - ./data:/app/data
-    # Run in scheduled mode by default
-    command: ["node", "dist/index.js", "--schedule"]
-
-    # Optional: For one-time run use:
-    # command: ["node", "dist/index.js"]
+    # Use default command from Dockerfile (crond)
 
     # Logging
     logging:
