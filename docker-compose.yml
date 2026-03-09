@@ -9,6 +9,7 @@ services:
       dockerfile: Dockerfile
     container_name: finmacro-sentinel
     restart: unless-stopped
+    init: true
     environment:
       # Anthropic Claude API
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
