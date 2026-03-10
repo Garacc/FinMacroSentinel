@@ -1,7 +1,8 @@
 #!/bin/sh
 # Simple cron scheduler
 # Executes different tasks based on time:
-# - 6:00 (weekdays): Daily report (generateDailyReport)
+# - Monday 00:00: Weekly report
+# - 6:00 (weekdays): Daily report
 # - 9:00, 12:00, 21:00 (weekdays): Pipeline (news analysis)
 
 HOUR=$(date +%H)
@@ -11,7 +12,13 @@ DAY=$(date +%u)
 # Debug: log every minute
 echo "[CRON] Triggered at $HOUR:$MINUTE on day $DAY" >&2
 
-# Only run on weekdays (1-5)
+# Check for weekly report (Monday at 00:00)
+if [ "$DAY" = "1" ] && [ "$HOUR" = "00" ] && [ "$MINUTE" = "00" ]; then
+    echo "[CRON] Executing weekly report at Monday 00:00" >&2
+    exec node /app/dist/index.js --schedule --report weekly
+fi
+
+# Only run on weekdays (1-5) for daily/pipeline
 if [ "$DAY" -lt 1 ] || [ "$DAY" -gt 5 ]; then
     echo "[CRON] Not a weekday (day=$DAY), skipping" >&2
     exit 0
