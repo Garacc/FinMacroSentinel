@@ -48,8 +48,17 @@ RUN mkdir -p output
 ENV TZ=Asia/Shanghai
 ENV NODE_ENV=production
 
+# Install cron
+RUN apk add --no-cache dcron
+
+# Create cron script
+RUN echo '#!/bin/sh\ncd /app\nnode dist/index.js --schedule > /proc/1/fd/1 2>&1' > /app/run-scheduler.sh && chmod +x /app/run-scheduler.sh
+
+# Setup crontab
+RUN echo '* * * * * /app/run-scheduler.sh' > /etc/crontabs/root
+
 # Use dumb-init as PID 1, which properly handles child processes and signals
 ENTRYPOINT ["dumb-init", "--"]
 
-# Default command runs in scheduled mode
-CMD ["node", "dist/index.js", "--schedule"]
+# Default command runs cron
+CMD ["crond", "-f", "-l", "2"]
