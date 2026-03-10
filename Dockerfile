@@ -48,30 +48,19 @@ RUN mkdir -p output
 ENV TZ=Asia/Shanghai
 ENV NODE_ENV=production
 
-# Install cron
-RUN apk add --no-cache dcron
-
 # Use dumb-init as PID 1
 ENTRYPOINT ["dumb-init", "--"]
 
-# Run scheduler with crontab - pass all env vars to cron
-CMD ["sh", "-c", \
-  "echo '#!/bin/sh' > /app/scheduler-cron.sh && " \
-  "echo 'export ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}' >> /app/scheduler-cron.sh && " \
-  "echo 'export ANTHROPIC_MODEL=${ANTHROPIC_MODEL}' >> /app/scheduler-cron.sh && " \
-  "echo 'export ANTHROPIC_API_ENDPOINT=${ANTHROPIC_API_ENDPOINT}' >> /app/scheduler-cron.sh && " \
-  "echo 'export FEISHU_WEBHOOK_URL=${FEISHU_WEBHOOK_URL}' >> /app/scheduler-cron.sh && " \
-  "echo 'export FEISHU_WEBHOOK_SECRET=${FEISHU_WEBHOOK_SECRET}' >> /app/scheduler-cron.sh && " \
-  "echo 'export FEISHU_APP_ID=${FEISHU_APP_ID}' >> /app/scheduler-cron.sh && " \
-  "echo 'export FEISHU_APP_SECRET=${FEISHU_APP_SECRET}' >> /app/scheduler-cron.sh && " \
-  "echo 'export FEISHU_CHAT_ID=${FEISHU_CHAT_ID}' >> /app/scheduler-cron.sh && " \
-  "echo 'export FRED_API_KEY=${FRED_API_KEY}' >> /app/scheduler-cron.sh && " \
-  "echo 'export FINNHUB_API_KEY=${FINNHUB_API_KEY}' >> /app/scheduler-cron.sh && " \
-  "echo 'export OUTPUT_DIR=${OUTPUT_DIR}' >> /app/scheduler-cron.sh && " \
-  "echo 'export SCHEDULE_CRON=${SCHEDULE_CRON}' >> /app/scheduler-cron.sh && " \
-  "echo 'export TZ=${TZ}' >> /app/scheduler-cron.sh && " \
-  "echo 'export NODE_ENV=${NODE_ENV}' >> /app/scheduler-cron.sh && " \
-  "echo 'exec node /app/dist/index.js --schedule' >> /app/scheduler-cron.sh && " \
-  "chmod +x /app/scheduler-cron.sh && " \
-  "echo '* * * * * /app/scheduler-cron.sh' > /etc/crontabs/root && " \
-  "crond -f -l 2"]
+# Run with simple cron scheduler
+CMD ["sh", "-c", "echo '#!/bin/sh' > /app/scheduler.sh && \
+    echo 'HOUR=$(date +%H)' >> /app/scheduler.sh && \
+    echo 'MINUTE=$(date +%M)' >> /app/scheduler.sh && \
+    echo 'DAY=$(date +%u)' >> /app/scheduler.sh && \
+    echo 'if [ \"$DAY\" -lt 1 ] || [ \"$DAY\" -gt 5 ]; then exit 0; fi' >> /app/scheduler.sh && \
+    echo 'case \"$HOUR:$MINUTE\" in' >> /app/scheduler.sh && \
+    echo '    \"6:00\"|\"9:00\"|\"12:00\"|\"21:00\") exec node /app/dist/index.js --schedule ;;' >> /app/scheduler.sh && \
+    echo '    *) exit 0 ;;' >> /app/scheduler.sh && \
+    echo 'esac' >> /app/scheduler.sh && \
+    echo '* * * * * /app/scheduler.sh' > /etc/crontabs/root && \
+    chmod +x /app/scheduler.sh && \
+    crond -f -l 2"]
