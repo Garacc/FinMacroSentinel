@@ -51,8 +51,12 @@ ENV NODE_ENV=production
 # Install cron
 RUN apk add --no-cache dcron
 
+# Replace crontab with our configuration
+RUN echo '* * * * * node /app/dist/index.js --schedule' > /etc/crontabs/root && \
+    chmod 600 /etc/crontabs/root
+
 # Use dumb-init as PID 1
 ENTRYPOINT ["dumb-init", "--"]
 
-# Run scheduler with crontab
-CMD ["sh", "-c", "echo '* * * * * node /app/dist/index.js --schedule' > /etc/crontabs/root && crond -f -l 2"]
+# Run cron
+CMD ["crond", "-f", "-l", "2"]
