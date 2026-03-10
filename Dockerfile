@@ -52,9 +52,11 @@ ENV NODE_ENV=production
 RUN apk add --no-cache dcron
 
 # Create cron script
-RUN echo '#!/bin/sh\ncd /app\nnode dist/index.js --schedule > /proc/1/fd/1 2>&1' > /app/run-scheduler.sh && chmod +x /app/run-scheduler.sh
+RUN echo '#!/bin/sh' > /app/run-scheduler.sh && \
+    echo 'exec node /app/dist/index.js --schedule' >> /app/run-scheduler.sh && \
+    chmod +x /app/run-scheduler.sh
 
-# Setup crontab
+# Create crontab file
 RUN echo '* * * * * /app/run-scheduler.sh' > /etc/crontabs/root
 
 # Use dumb-init as PID 1, which properly handles child processes and signals
