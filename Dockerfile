@@ -52,14 +52,14 @@ ENV NODE_ENV=production
 RUN apk add --no-cache dcron
 
 # Create cron wrapper script
-RUN echo '#!/bin/sh' > /app/cron-wrapper.sh && \
-    echo 'echo "* * * * * /app/run.sh" > /etc/crontabs/root' >> /app/cron-wrapper.sh && \
-    echo 'exec crond -f -l 2' >> /app/cron-wrapper.sh && \
+RUN printf '#!/bin/sh\n' > /app/cron-wrapper.sh && \
+    printf 'echo "* * * * * /app/run.sh" > /etc/crontabs/root\n' >> /app/cron-wrapper.sh && \
+    printf 'exec crond -f -l 2\n' >> /app/cron-wrapper.sh && \
     chmod +x /app/cron-wrapper.sh
 
 # Create run script
-RUN echo '#!/bin/sh' > /app/run.sh && \
-    echo 'exec node /app/dist/index.js --schedule' >> /app/run.sh && \
+RUN printf '#!/bin/sh\n' > /app/run.sh && \
+    printf 'exec node /app/dist/index.js --schedule\n' >> /app/run.sh && \
     chmod +x /app/run.sh
 
 # Use dumb-init as PID 1
