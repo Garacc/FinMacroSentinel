@@ -1,21 +1,27 @@
 #!/bin/sh
-# Simple cron setup script
+# Simple cron scheduler with debug output
 
-# Create scheduler script
-echo '#!/bin/sh' > /app/scheduler.sh
-echo 'HOUR=$(date +%H)' >> /app/scheduler.sh
-echo 'MINUTE=$(date +%M)' >> /app/scheduler.sh
-echo 'DAY=$(date +%u)' >> /app/scheduler.sh
-echo 'if [ "$DAY" -lt 1 ] || [ "$DAY" -gt 5 ]; then exit 0; fi' >> /app/scheduler.sh
-echo 'case "$HOUR:$MINUTE" in' >> /app/scheduler.sh
-echo '    "6:00"|"9:00"|"12:00"|"21:00") exec node /app/dist/index.js --schedule ;;' >> /app/scheduler.sh
-echo '    *) exit 0 ;;' >> /app/scheduler.sh
-echo 'esac' >> /app/scheduler.sh
+HOUR=$(date +%H)
+MINUTE=$(date +%M)
+DAY=$(date +%u)
 
-chmod +x /app/scheduler.sh
+# Debug: log every minute
+echo "[DEBUG] Cron triggered at $HOUR:$MINUTE on day $DAY" >&2
 
-# Setup crontab
-echo '* * * * * /app/scheduler.sh' > /etc/crontabs/root
+# Only run on weekdays (1-5)
+if [ "$DAY" -lt 1 ] || [ "$DAY" -gt 5 ]; then
+    echo "[DEBUG] Not a weekday, skipping" >&2
+    exit 0
+fi
 
-# Start cron
-exec crond -f -l 2
+# Run at specific times: 6:00, 9:00, 12:00, 21:00
+case "$HOUR:$MINUTE" in
+    "6:00"|"9:00"|"12:00"|"21:00")
+        echo "[DEBUG] Time matches, executing pipeline" >&2
+        exec node /app/dist/index.js --schedule
+        ;;
+    *)
+        echo "[DEBUG] Time $HOUR:$MINUTE not in schedule, skipping" >&2
+        exit 0
+        ;;
+esac
