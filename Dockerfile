@@ -48,19 +48,11 @@ RUN mkdir -p output
 ENV TZ=Asia/Shanghai
 ENV NODE_ENV=production
 
+# Copy cron setup script
+COPY setup-cron.sh /app/setup-cron.sh
+
 # Use dumb-init as PID 1
 ENTRYPOINT ["dumb-init", "--"]
 
-# Run with simple cron scheduler
-CMD ["sh", "-c", "echo '#!/bin/sh' > /app/scheduler.sh && \
-    echo 'HOUR=$(date +%H)' >> /app/scheduler.sh && \
-    echo 'MINUTE=$(date +%M)' >> /app/scheduler.sh && \
-    echo 'DAY=$(date +%u)' >> /app/scheduler.sh && \
-    echo 'if [ \"$DAY\" -lt 1 ] || [ \"$DAY\" -gt 5 ]; then exit 0; fi' >> /app/scheduler.sh && \
-    echo 'case \"$HOUR:$MINUTE\" in' >> /app/scheduler.sh && \
-    echo '    \"6:00\"|\"9:00\"|\"12:00\"|\"21:00\") exec node /app/dist/index.js --schedule ;;' >> /app/scheduler.sh && \
-    echo '    *) exit 0 ;;' >> /app/scheduler.sh && \
-    echo 'esac' >> /app/scheduler.sh && \
-    echo '* * * * * /app/scheduler.sh' > /etc/crontabs/root && \
-    chmod +x /app/scheduler.sh && \
-    crond -f -l 2"]
+# Run setup script then cron
+CMD ["/bin/sh", "/app/setup-cron.sh"]
