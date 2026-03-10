@@ -45,6 +45,3 @@ docker-compose.yml
 # Output directory (usually mounted)
 output
 data
-
-# Cron scripts (will be created in Dockerfile)
-cron-wrapper.sh
