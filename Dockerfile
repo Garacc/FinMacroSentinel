@@ -56,11 +56,8 @@ RUN echo '#!/bin/sh' > /app/run-scheduler.sh && \
     echo 'exec node /app/dist/index.js --schedule' >> /app/run-scheduler.sh && \
     chmod +x /app/run-scheduler.sh
 
-# Create crontab file
-RUN echo '* * * * * /app/run-scheduler.sh' > /etc/crontabs/root
-
 # Use dumb-init as PID 1, which properly handles child processes and signals
 ENTRYPOINT ["dumb-init", "--"]
 
-# Default command runs cron
-CMD ["crond", "-f", "-l", "2"]
+# Default command runs scheduler script directly every minute
+CMD ["/bin/sh", "-c", "echo '* * * * * /app/run-scheduler.sh' > /etc/crontabs/root && crond -f -l 2"]
