@@ -41,9 +41,6 @@ RUN npm install --omit=dev --build-from-source=better-sqlite3
 # Copy built files
 COPY --from=builder /app/dist/ ./dist/
 
-# Copy cron wrapper script
-COPY cron-wrapper.sh /app/cron-wrapper.sh
-
 # Create output directory
 RUN mkdir -p output
 
@@ -52,7 +49,12 @@ ENV TZ=Asia/Shanghai
 ENV NODE_ENV=production
 
 # Install cron
-RUN apk add --no-cache dcron && \
+RUN apk add --no-cache dcron
+
+# Create cron wrapper script
+RUN echo '#!/bin/sh' > /app/cron-wrapper.sh && \
+    echo 'echo "* * * * * /app/run.sh" > /etc/crontabs/root' >> /app/cron-wrapper.sh && \
+    echo 'exec crond -f -l 2' >> /app/cron-wrapper.sh && \
     chmod +x /app/cron-wrapper.sh
 
 # Create run script
