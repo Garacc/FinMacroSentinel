@@ -40,8 +40,20 @@ services:
       - ./output:/app/output
       # Optional: persist data directory
       - ./data:/app/data
-    # Use crond for scheduled tasks
-    command: ["crond", "-f", "-l", "2"]
+    # Use cron to trigger scheduler every minute
+    command: >-
+      sh -c '
+      echo "#!/bin/sh" > /app/scheduler-cron.sh &&
+      echo "export ANTHROPIC_API_KEY=$$ANTHROPIC_API_KEY" >> /app/scheduler-cron.sh &&
+      echo "export ANTHROPIC_MODEL=$$ANTHROPIC_MODEL" >> /app/scheduler-cron.sh &&
+      echo "export FEISHU_WEBHOOK_URL=$$FEISHU_WEBHOOK_URL" >> /app/scheduler-cron.sh &&
+      echo "export SCHEDULE_CRON=$$SCHEDULE_CRON" >> /app/scheduler-cron.sh &&
+      echo "export TZ=$$TZ" >> /app/scheduler-cron.sh &&
+      echo "exec node /app/dist/index.js --schedule" >> /app/scheduler-cron.sh &&
+      chmod +x /app/scheduler-cron.sh &&
+      echo "* * * * * /app/scheduler-cron.sh" > /etc/crontabs/root &&
+      crond -f -l 2
+      '
 
     # Logging
     logging:
