@@ -40,7 +40,8 @@ services:
       - ./output:/app/output
       # Optional: persist data directory
       - ./data:/app/data
-    # Use default command from Dockerfile (crond)
+    # Use crond for scheduled tasks
+    command: ["crond", "-f", "-l", "2"]
 
     # Logging
     logging:
