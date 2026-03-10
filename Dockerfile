@@ -51,16 +51,19 @@ ENV NODE_ENV=production
 # Install cron
 RUN apk add --no-cache dcron
 
-# Create cron wrapper script
-RUN printf '#!/bin/sh\n' > /app/cron-wrapper.sh && \
-    printf 'echo "* * * * * /app/run.sh" > /etc/crontabs/root\n' >> /app/cron-wrapper.sh && \
-    printf 'exec crond -f -l 2\n' >> /app/cron-wrapper.sh && \
-    chmod +x /app/cron-wrapper.sh
+# Create scripts using heredoc
+RUN cat > /app/cron-wrapper.sh <<'ENDOFFILE'
+#!/bin/sh
+echo "* * * * * /app/run.sh" > /etc/crontabs/root
+exec crond -f -l 2
+ENDOFFILE
 
-# Create run script
-RUN printf '#!/bin/sh\n' > /app/run.sh && \
-    printf 'exec node /app/dist/index.js --schedule\n' >> /app/run.sh && \
-    chmod +x /app/run.sh
+RUN cat > /app/run.sh <<'ENDOFFILE'
+#!/bin/sh
+exec node /app/dist/index.js --schedule
+ENDOFFILE
+
+RUN chmod +x /app/cron-wrapper.sh /app/run.sh
 
 # Use dumb-init as PID 1
 ENTRYPOINT ["dumb-init", "--"]
