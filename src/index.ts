@@ -126,86 +126,30 @@ async function runPipeline(options: { dryRun?: boolean; timePeriod?: TimePeriod;
 }
 
 /**
- * Initialize and run in scheduled mode
+ * Run in scheduled mode (called by external cron)
+ * Note: This now just runs once and exits, since external cron handles scheduling
  */
 async function runScheduled(): Promise<void> {
-  console.log('[TEST] Beginning runScheduled...');
-  logger.info('[TEST] Beginning runScheduled...');
+  // This function is now called by external cron
+  // The external cron already determines the correct time to run
+  // So we just need to run the pipeline once and exit
 
-  console.log('[TEST] Starting FinMacroSentinel in scheduled mode...');
-  logger.info('Starting FinMacroSentinel in scheduled mode...');
-  console.log('[TEST] After logger.info');
-  logger.info('[TEST] After logger.info');
+  logger.info('[CRON] Starting scheduled execution...');
 
-  const scheduler = new Scheduler();
-  console.log('[TEST] After Scheduler()');
-  logger.info('[TEST] After Scheduler()');
-
-  // Test task: runs every minute to verify scheduler works
+  // Get current time to determine which pipeline to run
   const now = new Date();
-  const minute = now.getMinutes();
-  console.log(`[TEST] Adding test task for minute ${minute}`);
-  logger.info(`[TEST] Adding test task for minute ${minute}`);
-  scheduler.addTask({
-    name: 'test-every-minute',
-    cronExpression: `${minute} * * * *`,
-    timezone: 'Asia/Shanghai',
-    handler: async () => {
-      console.log('[TEST] Test cron task handler EXECUTED at minute ' + minute);
-      logger.info('[TEST] Test cron task executed at minute ' + minute);
-    },
-  });
-  console.log('[TEST] Test task added');
-  logger.info('[TEST] Test task added');
+  const hour = now.getHours();
+  const timePeriod = getTimePeriod(process.argv);
 
-  // Add weekly report task (Monday 00:00)
-  scheduler.addTask({
-    name: 'weekly-report',
-    cronExpression: '0 0 * * 1',  // Every Monday at 00:00
-    timezone: 'Asia/Shanghai',
-    handler: async () => {
-      logger.info('Running weekly macro report...');
-      await generateWeeklyReport({ days: 7 });
-    },
-  });
+  logger.info(`Running pipeline for time period: ${timePeriod || 'default'}`);
 
-  // Parse cron expression to extract hours for daily tasks
-  const cronParts = config.scheduler.cronExpression.split(' ');
-  const hours = cronParts[1].split(',');
-
-  for (const hour of hours) {
-    const hourNum = parseInt(hour, 10);
-
-    if (hourNum === 6) {
-      // Daily deep report at 6:00
-      scheduler.addTask({
-        name: 'daily-report',
-        cronExpression: `0 ${hour} * * 1-5`,
-        timezone: 'Asia/Shanghai',
-        handler: async () => {
-          logger.info('Running daily deep report...');
-          await generateDailyReport({ hours: 24 });
-        },
-      });
-    } else {
-      // Regular pipeline for other times (9, 12, 21)
-      scheduler.addTask({
-        name: `pipeline-${hour}`,
-        cronExpression: `0 ${hour} * * 1-5`,
-        timezone: 'Asia/Shanghai',
-        handler: () => runPipeline(),
-      });
-    }
+  try {
+    await runPipeline({ timePeriod });
+    logger.info('[CRON] Pipeline completed successfully');
+  } catch (error) {
+    logger.error('[CRON] Pipeline failed:', error);
+    throw error;
   }
-
-  scheduler.start();
-
-  // Log next scheduled runs
-  const nextRuns = scheduler.getNextRuns(5);
-  logger.info('Next scheduled runs:');
-  nextRuns.forEach((date, i) => {
-    logger.info(`  ${i + 1}. ${date.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`);
-  });
 }
 
 /**
