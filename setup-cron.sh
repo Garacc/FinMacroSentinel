@@ -42,6 +42,7 @@ if [ "$DAY" -ge 1 ] && [ "$DAY" -le 5 ]; then
     esac
 fi
 
+
 echo "[CRON] Time $HOUR:$MINUTE not in schedule, skipping" >&2
 exit 0
 SCHEDULER_EOF
