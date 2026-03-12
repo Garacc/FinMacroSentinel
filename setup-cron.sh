@@ -8,8 +8,8 @@
 # Create the scheduler script
 cat > /app/scheduler.sh << 'SCHEDULER_EOF'
 #!/bin/sh
-HOUR=$(date +%H)
-MINUTE=$(date +%M)
+HOUR=$(date +%-H)
+MINUTE=$(date +%-M)
 DAY=$(date +%u)  # 1=Monday, 7=Sunday
 
 # Weekly report: Monday at 00:00
