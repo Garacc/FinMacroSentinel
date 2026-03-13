@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { getAllReports } from "@/lib/reports";
+import { getAllReports, ReportMeta } from "@/lib/reports";
 
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
-  let reports;
+  let reports: ReportMeta[] = [];
   try {
     reports = getAllReports();
   } catch (e) {
