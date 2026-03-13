@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 
-const reportsDirectory = path.join(process.cwd(), 'output');
+const reportsDirectory = process.env.REPORTS_DIR || path.join(process.cwd(), 'output');
 
 export interface ReportMeta {
   id: string;
