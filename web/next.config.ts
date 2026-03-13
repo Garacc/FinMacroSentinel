@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Enable API routes
+  api: {
+    // API routes config
+  },
 };
 
 export default nextConfig;
