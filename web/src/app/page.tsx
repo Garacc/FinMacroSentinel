@@ -6,6 +6,9 @@ export const dynamic = 'force-dynamic';
 export default function Home() {
   const reports = getAllReports();
 
+  // Debug: log to console
+  console.log('Reports count:', reports.length);
+
   return (
     <div className="page-enter">
       <div className="mb-6">
