@@ -4,7 +4,13 @@ import { getAllReports } from "@/lib/reports";
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
-  const reports = getAllReports();
+  let reports;
+  try {
+    reports = getAllReports();
+  } catch (e) {
+    reports = [];
+    console.error('Error getting reports:', e);
+  }
 
   // Debug: log to console
   console.log('Reports count:', reports.length);
