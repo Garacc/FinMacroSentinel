@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable API routes
-  api: {
-    // API routes config
-  },
+  // Prevent static pre-rendering
+  trailingSlash: false,
+  generateStaticParams: () => [],
 };
 
 export default nextConfig;
