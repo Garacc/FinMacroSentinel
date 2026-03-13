@@ -67,6 +67,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - REPORTS_DIR=/app/output
     # Web 前端不需要特殊命令，使用默认的 next start
     logging:
       driver: "json-file"
